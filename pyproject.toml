@@ -1,0 +1,96 @@
+[build-system]
+requires = ["hatchling>=1.18"]
+build-backend = "hatchling.build"
+
+[project]
+name = "polis-recognizer"
+version = "0.1.0"
+description = "Russian KASKO insurance policy field extractor — pulls 7 structured fields from PDF policies (text-layer + tables + OCR fallback)."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+authors = [
+    { name = "Grigorii Grachev", email = "grigorii@example.com" },
+]
+keywords = [
+    "insurance",
+    "policy",
+    "kasko",
+    "ocr",
+    "pdf",
+    "extraction",
+    "russian",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS :: MacOS X",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business",
+    "Topic :: Text Processing",
+    "Natural Language :: Russian",
+]
+dependencies = [
+    "pypdf>=3.17.4,<6",
+    "pdfplumber>=0.11.0,<1",
+    "pytesseract>=0.3.10,<1",
+    "Pillow>=10.0,<12",
+    "pdf2image>=1.16,<2",
+    "opencv-python-headless>=4.8,<5",
+]
+
+[project.urls]
+Homepage = "https://github.com/grigra27/polis-recognizer"
+Repository = "https://github.com/grigra27/polis-recognizer"
+Issues = "https://github.com/grigra27/polis-recognizer/issues"
+Changelog = "https://github.com/grigra27/polis-recognizer/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "reportlab>=4.0",  # synthetic PDF fixtures
+]
+dev = [
+    "polis-recognizer[test]",
+    "ruff>=0.5",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["polis_recognizer"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/polis_recognizer",
+    "/tests",
+    "/examples",
+    "/README.md",
+    "/LICENSE",
+    "/CHANGELOG.md",
+    "/CONTRIBUTING.md",
+    "/pyproject.toml",
+]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+filterwarnings = [
+    "error",
+    # pytesseract emits a DeprecationWarning on Python 3.12 about
+    # `pkg_resources` — unrelated to our code, suppress.
+    "ignore::DeprecationWarning:pytesseract",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
