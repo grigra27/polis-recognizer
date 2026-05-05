@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "polis-recognizer"
-version = "0.1.0"
+version = "0.2.0"
 description = "Russian KASKO insurance policy field extractor — pulls 7 structured fields from PDF policies (text-layer + tables + OCR fallback)."
 readme = "README.md"
 license = { text = "MIT" }
@@ -35,10 +35,19 @@ classifiers = [
     "Natural Language :: Russian",
 ]
 dependencies = [
-    "pypdf>=3.17.4,<6",
+    # pypdf >=6.10.2 — closes the 5.x CVE backlog (StreamObject DoS
+    # family, infinite-loop in CrossRef parser, several text-extraction
+    # crashes in pdf-cmaps). 6.x removed deprecated PyPDF2 shims;
+    # this package only uses PdfReader + page.extract_text(), both
+    # stable across 5.x → 6.x.
+    "pypdf>=6.10.2,<7",
     "pdfplumber>=0.11.0,<1",
     "pytesseract>=0.3.10,<1",
-    "Pillow>=10.0,<12",
+    # Pillow >=12.2.0 — closes 4 CVEs vs. the 11.x line (decoder OOB
+    # writes in MPO/JPEG-2000, integer overflow in ImageOps). 12.x
+    # removed already-deprecated APIs; only PIL.Image basics are used
+    # here (open / save / convert / fromarray), unaffected by the bump.
+    "Pillow>=12.2.0,<13",
     "pdf2image>=1.16,<2",
     "opencv-python-headless>=4.8,<5",
 ]

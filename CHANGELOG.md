@@ -5,6 +5,31 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] — 2026-05-05
+
+Security maintenance release. No API changes.
+
+### Changed
+
+- Bumped `pypdf` upper bound from `<6` to `<7` and the floor to
+  `>=6.10.2`. This unblocks downstream consumers from the 5.x CVE
+  backlog (CVE-2025-55197, CVE-2025-62707/-62708, CVE-2025-66019,
+  CVE-2026-22690/-22691/-24688/-27024/-27025/-27026/-27628/-27888/
+  -28351/-28804/-31826/-33123/-33699/-40260, plus four GHSA
+  advisories). Public surface used here — `PdfReader`,
+  `page.extract_text()` — is unchanged across 5.x → 6.x.
+- Bumped `Pillow` upper bound from `<12` to `<13` and the floor to
+  `>=12.2.0`. Closes 4 CVEs in the 11.x line (CVE-2026-25990/-40192/
+  -42308/-42309). Only `PIL.Image` basics are used here, which were
+  not affected by the 12.x removals.
+
+### Why
+
+`polis-recognizer 0.1.0` transitively pinned both packages below the
+versions that ship the CVE fixes, which forced downstream projects
+(notably `polishelper`) to suppress 26 advisories in their pip-audit
+configs. This release lifts that constraint.
+
 ## [0.1.0] — 2026-05-03
 
 Initial public release.
