@@ -71,9 +71,40 @@ _ORG_PREFIX_RE = re.compile(
 )
 
 
+# Patterns that strongly indicate the captured text is NOT a name. Used
+# as a reject filter on candidate captures.
+#
+# Bank details — happens on lizinging layouts where pdfplumber column
+# flattening puts the actual name on a different page and the line
+# immediately after the anchor is "р/с 40701810500160000472, БАНК
+# ВТБ(ПАО), к/с …". Without this reject the captured "name" was
+# "р/с 40701…".
+#
+# Numbered contract clauses — happens when "Страхователь:" is at end
+# of one section and the next non-empty line is "10.2. Выплата по
+# риску …". The strict-anchor correctly picks the labeled position;
+# this reject prevents the contract clause from landing as the name.
+_NAME_REJECT_PREFIX_RE = re.compile(
+    r"^\s*(?:"
+    r"р/с|к/с|БИК|БАНК\b|кор\.?\s*счет|расчетный\s+счет|"
+    r"\d+\.\d+\.?\s+|"     # "10.2 ", "10.2. ", "1.5 " — contract clause
+    r"\d+\)\s+"            # "1) ", "10) " — enumerated clause
+    r")",
+    re.IGNORECASE,
+)
+
+
 def _looks_like_name(s: str) -> bool:
-    """A real name has letters; bare digit / punctuation strings don't."""
-    return bool(s) and any(c.isalpha() for c in s)
+    """A real name has letters; bare digit / punctuation strings don't.
+
+    Also rejects bank-details headers and numbered contract clauses —
+    see ``_NAME_REJECT_PREFIX_RE``.
+    """
+    if not s or not any(c.isalpha() for c in s):
+        return False
+    if _NAME_REJECT_PREFIX_RE.match(s):
+        return False
+    return True
 
 
 def _strip_trailing_punctuation(s: str) -> str:

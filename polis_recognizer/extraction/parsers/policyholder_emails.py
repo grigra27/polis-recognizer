@@ -19,7 +19,7 @@ from typing import List
 from ..candidates import Candidate, ConfidenceComponents
 from ..policyholder_block import (
     locate_policyholder_block,
-    table_has_policyholder_anchor,
+    policyholder_table_rows,
 )
 from .base import ExtractionContext, FieldParser
 
@@ -53,9 +53,10 @@ class PolicyholderEmailsParser(FieldParser):
 
         for page in ctx.tables or []:
             for table in page or []:
-                if not table_has_policyholder_anchor(table):
+                rows = policyholder_table_rows(table)
+                if not rows:
                     continue
-                for row in table or []:
+                for row in rows:
                     for cell in row or []:
                         if not cell:
                             continue

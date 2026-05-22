@@ -20,12 +20,24 @@ from typing import Optional, Tuple
 from .normalizer import NormalizedText
 
 
-# Anchor marking the START of the policyholder block. The label is
-# usually followed by a colon, dash, or end-of-line; the trailing
-# character class accepts all three plus space so the captured span
-# starts right after the anchor word.
+# Anchor marking the START of the policyholder block.
+#
+# Russian lizinging КАСКО polises often print a combined label like
+# "СТРАХОВАТЕЛЬ / ЛИЗИНГОПОЛУЧАТЕЛЬ:" or
+# "СТРАХОВАТЕЛЬ / ВЫГОДОПРИОБРЕТАТЕЛЬ" — both refer to the same
+# (single) party. The optional suffix is absorbed by the anchor so
+# the block span starts AFTER the full combined label, not in the
+# middle of " / ЛИЗИНГОПОЛУЧАТЕЛЬ:" (which used to produce names
+# like "/ ЛИЗИНГОПОЛУЧА" — batch_1 inspector).
 _BLOCK_START_RE = re.compile(
-    r"(?:Страхователь|СТРАХОВАТЕЛЬ)(?=[\s:\-—–])",
+    r"(?:Страхователь|СТРАХОВАТЕЛЬ)"
+    r"(?:\s*/\s*(?:"
+    r"Лизингополучатель|ЛИЗИНГОПОЛУЧАТЕЛЬ|"
+    r"Выгодоприобретатель|ВЫГОДОПРИОБРЕТАТЕЛЬ|"
+    r"Залогодатель|ЗАЛОГОДАТЕЛЬ|"
+    r"Грузополучатель|ГРУЗОПОЛУЧАТЕЛЬ"
+    r"))?"
+    r"(?=[\s:\-—–])",
 )
 
 # Section headers that close the block. Short list of high-confidence
@@ -173,17 +185,81 @@ _TABLE_STRAKH_LABEL_RE = re.compile(
     r"^\s*(?:Страхователь|СТРАХОВАТЕЛЬ)\b"
 )
 
+# Labels of OTHER parties that close the policyholder rows range
+# within a table. A subsequent row starting with one of these belongs
+# to a different party (broker, insurer, lizingodatel, …) and must
+# NOT contribute identifiers or contacts to the policyholder slot.
+#
+# Real corpus example (batch_1): a single pdfplumber table carries
+# rows ["Брокер", "ООО ..."] / ["Адрес", "Люберцы …"] /
+# ["Email", "online@on-linebroker.ru"] BEFORE the
+# ["Страхователь", "<actual name>"] row. Without row-grouping,
+# `online@on-linebroker.ru` lands in `policyholder_contacts.emails`.
+_TABLE_OTHER_PARTY_RE = re.compile(
+    r"^\s*(?:"
+    r"Брокер|БРОКЕР|"
+    r"Страховой\s+брокер|СТРАХОВОЙ\s+БРОКЕР|"
+    r"Страховщик|СТРАХОВЩИК|"
+    r"Выгодоприобретатель|ВЫГОДОПРИОБРЕТАТЕЛЬ|"
+    r"Собственник|СОБСТВЕННИК|"
+    r"Лизингодатель|ЛИЗИНГОДАТЕЛЬ|"
+    r"Залогодержатель|ЗАЛОГОДЕРЖАТЕЛЬ|"
+    r"Контактное\s+лицо|КОНТАКТНОЕ\s+ЛИЦО|"
+    r"Представитель\b|ПРЕДСТАВИТЕЛЬ\b"
+    r")",
+    re.IGNORECASE,
+)
+
 
 def table_has_policyholder_anchor(table) -> bool:
     """True iff one of the table's cells is a "Страхователь" label.
 
-    Used by per-subfield parsers (INN, OGRN, KPP, phones, emails, …)
-    as a precondition for scanning a table: without a policyholder
-    anchor anywhere in the table, we cannot tell whose subfields the
-    rows belong to and the table is skipped.
+    Used by per-subfield parsers as a quick precondition. For more
+    precise row-level scoping (excluding rows that belong to other
+    parties in the same table), use :func:`policyholder_table_rows`
+    instead.
     """
     for row in table or []:
         for cell in row or []:
             if cell and _TABLE_STRAKH_LABEL_RE.match(cell):
                 return True
     return False
+
+
+def policyholder_table_rows(table):
+    """Return the slice of rows in ``table`` belonging to the policyholder.
+
+    Begins at the row containing a "Страхователь" label cell. Ends
+    just before the next row whose first cell labels a different party
+    (Брокер / Страховщик / Выгодоприобретатель / Собственник /
+    Лизингодатель / Залогодержатель / Контактное лицо / Представитель)
+    or at end of table. Returns ``[]`` when no Страхователь row exists.
+
+    This is the precise alternative to
+    :func:`table_has_policyholder_anchor` + iterate-all-rows that
+    parsers should use when scanning for sub-field values — without
+    it, broker / insurer rows in the same table leak into the
+    policyholder slot.
+    """
+    if not table:
+        return []
+    start = None
+    for i, row in enumerate(table):
+        for cell in row or []:
+            if cell and _TABLE_STRAKH_LABEL_RE.match(cell):
+                start = i
+                break
+        if start is not None:
+            break
+    if start is None:
+        return []
+    end = len(table)
+    for i in range(start + 1, len(table)):
+        row = table[i] or []
+        if not row:
+            continue
+        first_cell = (row[0] or "").strip() if row else ""
+        if first_cell and _TABLE_OTHER_PARTY_RE.match(first_cell):
+            end = i
+            break
+    return table[start:end]

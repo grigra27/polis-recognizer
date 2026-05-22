@@ -24,7 +24,7 @@ from typing import List
 from ..candidates import Candidate, ConfidenceComponents
 from ..policyholder_block import (
     locate_policyholder_block,
-    table_has_policyholder_anchor,
+    policyholder_table_rows,
 )
 from .base import ExtractionContext, FieldParser
 
@@ -72,9 +72,10 @@ class PolicyholderKPPParser(FieldParser):
         out: List[Candidate] = []
         for page in ctx.tables or []:
             for table in page or []:
-                if not table_has_policyholder_anchor(table):
+                rows = policyholder_table_rows(table)
+                if not rows:
                     continue
-                for row in table:
+                for row in rows:
                     if not row or len(row) < 2:
                         continue
                     if not _KPP_TABLE_LABEL_RE.match(row[0] or ""):
