@@ -22,7 +22,10 @@ import re
 from typing import List
 
 from ..candidates import Candidate, ConfidenceComponents
-from ..policyholder_block import locate_policyholder_block
+from ..policyholder_block import (
+    locate_policyholder_block,
+    table_has_policyholder_anchor,
+)
 from .base import ExtractionContext, FieldParser
 
 
@@ -33,16 +36,28 @@ class PolicyholderPostalCodeParser(FieldParser):
     field_name = "policyholder_postal_code"
 
     def parse(self, ctx: ExtractionContext) -> List[Candidate]:
+        # Text-block scan first.
+        candidates = self._from_block(ctx)
+        # Fall back to anchored tables when block has no postal code —
+        # in XLS form-mask polises the address often lives only in the
+        # table layer, never in the text layer.
+        if not candidates:
+            candidates = self._from_tables(ctx)
+        if not candidates:
+            return self._not_found()
+        return candidates
+
+    def _from_block(self, ctx: ExtractionContext) -> List[Candidate]:
         block = locate_policyholder_block(ctx.normalized)
         if block is None:
-            return self._not_found()
+            return []
         text = ctx.normalized.text
         start, end = block
         block_text = text[start:end]
 
         match = _POSTAL_RE.search(block_text)
         if match is None:
-            return self._not_found()
+            return []
         digits = match.group(1)
         span_abs = (start + match.start(), start + match.end())
         return [
@@ -60,6 +75,37 @@ class PolicyholderPostalCodeParser(FieldParser):
                 ),
             )
         ]
+
+    def _from_tables(self, ctx: ExtractionContext) -> List[Candidate]:
+        out: List[Candidate] = []
+        for page in ctx.tables or []:
+            for table in page or []:
+                if not table_has_policyholder_anchor(table):
+                    continue
+                for row in table or []:
+                    for cell in row or []:
+                        if not cell:
+                            continue
+                        match = _POSTAL_RE.search(cell)
+                        if match is None:
+                            continue
+                        digits = match.group(1)
+                        out.append(
+                            Candidate(
+                                value=digits,
+                                state="found",
+                                pattern_id="table_cell",
+                                source_fragment=f"…{digits}…",
+                                components=ConfidenceComponents(
+                                    pattern_strength=0.55,
+                                    context_strength=0.2,
+                                ),
+                            )
+                        )
+                        # First hit per table is enough.
+                        if out:
+                            return out
+        return out
 
     def _not_found(self) -> List[Candidate]:
         return [

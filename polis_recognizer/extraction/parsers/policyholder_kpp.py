@@ -35,6 +35,20 @@ _KPP_LABEL_AND_DIGITS_RE = re.compile(
 _KPP_DIGITS_RE = re.compile(r"(?<!\d)(\d{9})(?!\d)")
 _KPP_TABLE_LABEL_RE = re.compile(r"^\s*КПП\b", re.IGNORECASE)
 
+# See policyholder_ogrn.py for the rationale — КПП on a bank-details
+# line almost always belongs to the lizingodatel, not the policyholder.
+_BANK_LINE_RE = re.compile(
+    r"(?:р/с|к/с|БИК|кор\.?\s*счет)", re.IGNORECASE
+)
+
+
+def _is_bank_line(block_text: str, match_start: int) -> bool:
+    line_start = block_text.rfind("\n", 0, match_start) + 1
+    line_end = block_text.find("\n", match_start)
+    if line_end == -1:
+        line_end = len(block_text)
+    return bool(_BANK_LINE_RE.search(block_text[line_start:line_end]))
+
 
 class PolicyholderKPPParser(FieldParser):
     field_name = "policyholder_kpp"
@@ -96,6 +110,8 @@ class PolicyholderKPPParser(FieldParser):
         out: List[Candidate] = []
         for match in _KPP_LABEL_AND_DIGITS_RE.finditer(block_text):
             digits = match.group(1)
+            if _is_bank_line(block_text, match.start()):
+                continue
             span_abs = (start + match.start(), start + match.end())
             out.append(
                 Candidate(

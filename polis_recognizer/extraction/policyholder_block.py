@@ -32,10 +32,21 @@ _BLOCK_START_RE = re.compile(
 # stoppers — every label here is a separate document section, not a
 # subfield of the policyholder (those — ИНН, Адрес, Тел — stay inside
 # the block and are extracted by their own parsers).
+#
+# В лизинговых КАСКО следом за блоком страхователя обычно идут разделы
+# СОБСТВЕННИК / ЛИЗИНГОДАТЕЛЬ / ВЫГОДОПРИОБРЕТАТЕЛЬ / ОБРЕМЕНЕНИЕ ТС —
+# с их собственными ИНН/ОГРН/КПП. Без явных стопперов эти реквизиты
+# протекают в `policyholder_*` слотами лизингодателя, не страхователя
+# (см. batch_1 inspector — `Договор 763-25-102_БЛ-…`,
+# `Печатная форма AC*`).
 _BLOCK_END_RE = re.compile(
     r"(?:"
     r"Страховщик|СТРАХОВЩИК|"
     r"Выгодоприобретатель|ВЫГОДОПРИОБРЕТАТЕЛЬ|"
+    r"Собственник|СОБСТВЕННИК|"
+    r"Лизингодатель|ЛИЗИНГОДАТЕЛЬ|"
+    r"Залогодержатель|ЗАЛОГОДЕРЖАТЕЛЬ|"
+    r"ОБРЕМЕНЕНИЕ|Обременение|"
     r"Застрахован(?:ный|ное|ные)|"
     r"Объект\s+страхования|"
     r"Транспортное\s+средство|"
@@ -54,6 +65,62 @@ _BLOCK_END_RE = re.compile(
 _MAX_BLOCK_CHARS = 1500
 
 
+def _anchor_label_score(text: str, anchor_start: int, anchor_end: int = -1) -> int:
+    """Score how "label-like" the position of an anchor is.
+
+    Higher score = more likely to be a real field label, not the word
+    "Страхователь" appearing in prose. Used to disambiguate when a
+    document contains multiple anchors (e.g. a labeled "Страхователь:"
+    field AND a prose sentence like "Страхователь подтверждает, что
+    Правила страхования получил…").
+
+    Two independent signals are combined:
+
+    **Prefix** (what precedes the anchor):
+        +2 — at the start of a line, or after a numbered list prefix
+             like ``1.`` / ``2. ``;
+        +1 — within the first ~10 chars of a line;
+         0 — deep in a line.
+
+    **Suffix** (what follows the anchor):
+        -3 — anchor word is immediately followed by a lowercase
+             Cyrillic letter — the classic prose continuation
+             ("Страхователь подтверждает", "обязан", "вправе" …).
+         0 — followed by ``:``/space/dash, then a capital letter
+             (a name) or punctuation like ``/`` — label-like.
+
+    A prose-only sentence at the start of a document gets score ``-3``;
+    a labeled field anywhere later wins easily. When every anchor is
+    prose, the highest-scored (i.e. least-negative) still wins, so we
+    don't accidentally produce ``None``.
+    """
+    line_start = text.rfind("\n", 0, anchor_start) + 1
+    prefix = text[line_start:anchor_start]
+    prefix_clean = re.sub(r"^\s*\d+[\.\)]\s*", "", prefix).strip()
+    if not prefix_clean:
+        prefix_score = 2
+    elif len(prefix_clean) <= 10:
+        prefix_score = 1
+    else:
+        prefix_score = 0
+
+    suffix_score = 0
+    if anchor_end >= 0:
+        suffix = text[anchor_end : anchor_end + 40]
+        # Strip the bit of whitespace / colon / dash that legitimately
+        # separates a label from its content; whatever's after that is
+        # the actual continuation.
+        head = re.match(r"^[\s:\-—–]*", suffix)
+        after_punct = suffix[head.end() :] if head else suffix
+        if after_punct:
+            first = after_punct[0]
+            # Lowercase Cyrillic letter → prose verb in 99% of cases.
+            if first.isalpha() and first.islower():
+                suffix_score = -3
+
+    return prefix_score + suffix_score
+
+
 def locate_policyholder_block(
     normalized: NormalizedText,
 ) -> Optional[Tuple[int, int]]:
@@ -65,14 +132,23 @@ def locate_policyholder_block(
     next section stopper, or ``start + _MAX_BLOCK_CHARS``, or the end
     of text — whichever comes first.
 
-    Returns ``None`` when no anchor is present. The first anchor wins
-    if there are several; multi-block documents are out of scope.
+    Returns ``None`` when no anchor is present. When multiple anchors
+    are present, prefers labeled positions (start of line, after ``1.``)
+    over prose matches like "Страхователь подтверждает, что…". The
+    first highest-scored anchor wins.
     """
     text = normalized.text
-    start_match = _BLOCK_START_RE.search(text)
-    if start_match is None:
+    matches = list(_BLOCK_START_RE.finditer(text))
+    if not matches:
         return None
-    start = start_match.end()
+    best = max(
+        matches,
+        key=lambda m: (
+            _anchor_label_score(text, m.start(), m.end()),
+            -m.start(),
+        ),
+    )
+    start = best.end()
     tail = text[start : start + _MAX_BLOCK_CHARS]
     end_match = _BLOCK_END_RE.search(tail)
     if end_match is not None:

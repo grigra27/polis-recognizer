@@ -41,6 +41,30 @@ _OGRN_LABEL_AND_DIGITS_RE = re.compile(
 
 _OGRN_TABLE_LABEL_RE = re.compile(r"^\s*ОГРН(?:ИП)?\b", re.IGNORECASE)
 
+# Banking-context markers. ОГРН/КПП found on a line that also carries
+# any of these is almost always the **lizingodatel's** bank-details
+# line, not the policyholder's — even when the line technically falls
+# inside the located policyholder block. Real corpus example
+# (batch_1 #10):
+#   "р/с 40702810812000003807 ..., БИК 044030704,
+#    ОГРН 1074705005484, КПП 470501001"
+# That ОГРН belongs to ЗАО «Альянс-Лизинг», not to the policyholder.
+_BANK_LINE_RE = re.compile(
+    r"(?:р/с|к/с|БИК|кор\.?\s*счет)", re.IGNORECASE
+)
+
+
+def _is_bank_line(block_text: str, match_start: int) -> bool:
+    """True iff the line containing ``match_start`` looks like a
+    bank-details listing — in which case ОГРН/КПП on that line aren't
+    the policyholder's.
+    """
+    line_start = block_text.rfind("\n", 0, match_start) + 1
+    line_end = block_text.find("\n", match_start)
+    if line_end == -1:
+        line_end = len(block_text)
+    return bool(_BANK_LINE_RE.search(block_text[line_start:line_end]))
+
 
 def _validate_any_length(s: str) -> bool:
     if len(s) == 13:
@@ -113,6 +137,8 @@ class PolicyholderOGRNParser(FieldParser):
         for match in _OGRN_LABEL_AND_DIGITS_RE.finditer(block_text):
             digits = match.group(1)
             if not _validate_any_length(digits):
+                continue
+            if _is_bank_line(block_text, match.start()):
                 continue
             span_abs = (start + match.start(), start + match.end())
             out.append(

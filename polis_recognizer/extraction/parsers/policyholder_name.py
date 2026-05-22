@@ -115,6 +115,15 @@ class PolicyholderNameParser(FieldParser):
                         (c or "").strip() for c in row[1:]
                         if (c or "").strip()
                     )
+                    # Same stoppers as the in-text capture — XLS form
+                    # masks render each form field as its own cell, so
+                    # pdfplumber joins ("ООО Альфа", "ИНН 7707…",
+                    # "РЕЗИДЕНТ РФ", "ДА", "НЕТ") collapse into one
+                    # value. Without truncation the name slot ends up
+                    # carrying the ИНН marker + checkbox labels.
+                    stop_match = _NAME_STOP_RE.search(value_raw)
+                    if stop_match is not None:
+                        value_raw = value_raw[: stop_match.start()]
                     value = _strip_trailing_punctuation(value_raw.strip())
                     if not _looks_like_name(value):
                         continue
