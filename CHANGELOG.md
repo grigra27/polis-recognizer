@@ -5,6 +5,40 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3] — 2026-05-23
+
+Address-from-table cleanup. Closes the last known broker / form-mask
+artefact from the 0.3.0 → 0.3.2 corpus iteration.
+
+### Fixed
+
+- **Address table-cell stop.** When pdfplumber XLS-form-mask polises
+  join the address cell with adjacent form-field cells, the captured
+  address used to end up as
+  `"422774, РТ, …, ул. Новая, д. 2 ДАТА РОЖД. 21.02.1966 ПОЛ М ТЕЛ"`.
+  `_ADDRESS_STOP_RE` is now applied to the joined table value (same
+  fix idea as the name table-cell stop in 0.3.1), and the stop set
+  is extended with abbreviated form-mask labels — `ДАТА РОЖД`, `ПОЛ`,
+  `ТЕЛ`, `РЕЗИДЕНТ`.
+
+### Measured impact
+
+On `digital_pdf/batch_1`:
+
+| Field | 0.3.2 | 0.3.3 |
+|---|---|---|
+| `contacts.address` length sample #4 | 96 chars | 64 chars |
+| `contacts.address` length sample #14 | 167 chars | <unchanged, no form-mask debris> |
+| `contacts.address` coverage | 73.9% | 73.9% |
+
+Coverage is unchanged; addresses where form-mask debris was present
+are now trimmed to the actual address.
+
+### Tests
+
+5 new regression tests in
+`tests/test_corpus_regressions_v033.py`. 227 tests pass total.
+
 ## [0.3.2] — 2026-05-22
 
 Precision pass over the policyholder + contacts feature. The output
@@ -257,6 +291,7 @@ Initial public release.
   (`ExtractedPolicy`, `MonetaryField`, etc.) may change before 1.0.
 - KASKO-only for now; ОСАГО support is on the roadmap.
 
+[0.3.3]: https://github.com/grigra27/polis-recognizer/releases/tag/v0.3.3
 [0.3.2]: https://github.com/grigra27/polis-recognizer/releases/tag/v0.3.2
 [0.3.1]: https://github.com/grigra27/polis-recognizer/releases/tag/v0.3.1
 [0.3.0]: https://github.com/grigra27/polis-recognizer/releases/tag/v0.3.0
