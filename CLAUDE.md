@@ -40,21 +40,23 @@ corpus first — what you saw last session may be stale.
 
 ### Corpus handling rules
 
-These are **non-negotiable**:
+The corpus is a **training/test batch the project owner was given for
+development**, not live production client data. Discussing concrete
+values (ФИО, ИНН, addresses, phones, OGRN) in this chat is fine and
+often necessary for debugging extraction quality. The remaining
+restrictions are conservative defaults to keep data on-machine:
 
 - **Never commit any file from `test_policies/` into this repo.** PDFs,
-  extracted text, report.json — all of it contains real client PII
-  (ФИО, паспорт, телефон, ИНН, адрес). The corpus path is gitignored
-  by virtue of being outside the repo; do not work around that.
+  extracted text, report.json — keep all of it outside the repo, even
+  during debugging. The corpus path is outside the working tree;
+  don't work around that.
 - **Never upload corpus files to third-party services.** No pastebins,
-  no LLM tools, no online diff viewers, no diagram renderers, no
-  share-link generators. Anything that leaves this machine is a leak.
+  no online diff viewers, no diagram renderers, no share-link
+  generators. Discussion in the current Claude Code conversation is OK
+  (the owner sees and controls it); external services aren't.
 - Synthetic fixtures for unit tests are built via `reportlab` (in
   `[test]` deps). Real corpus is for regression runs only, not for
-  test fixtures.
-- When pasting corpus content into the conversation for debugging,
-  redact ФИО / passport / phone / address first — or work from the
-  shape of the data, not the data itself.
+  test fixtures committed to the repo.
 
 ## Build, test, conventions
 
