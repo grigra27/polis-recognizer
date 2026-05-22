@@ -5,6 +5,54 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] — 2026-05-22
+
+Adds policyholder + contacts extraction. No breaking changes to the
+existing seven legacy fields.
+
+### Added
+
+- **`ExtractedPolicy.policyholder`** — `{type, name, inn, ogrn, kpp,
+  passport, birth_date}`. `type` is `"individual"` or
+  `"legal_entity"`. Identifiers (`inn`, `ogrn`) are validated via
+  the published ФНС checksum algorithms; invalid digit runs (common
+  in OCR output) are rejected rather than emitted as
+  confident-but-wrong values.
+- **`ExtractedPolicy.policyholder_contacts`** — `{phones, emails,
+  address, postal_code}`. Phones normalised to E.164
+  (`+7XXXXXXXXXX`), emails lowercased and deduped, address returned
+  as a raw string (КЛАДР/ФИАС normalisation intentionally out of
+  scope), postal code first-digit-gated to 1–6.
+- **`PolicyExtractor(extract_pii=True)`** — opt-in flag for
+  passport and birth-date extraction. Off by default: with default
+  settings `policyholder.passport` and `policyholder.birth_date`
+  are always `None` even when the source text contains them, so
+  the default output is safe to log / cache / persist without
+  extra redaction work.
+- New parser modules in `polis_recognizer/extraction/parsers/`:
+  `policyholder_name`, `policyholder_type`, `policyholder_inn`,
+  `policyholder_ogrn`, `policyholder_kpp`, `policyholder_phones`,
+  `policyholder_emails`, `policyholder_address`,
+  `policyholder_postal_code`, `policyholder_passport`,
+  `policyholder_birth_date`.
+- Shared helpers in `extraction/`: `policyholder_block.py`
+  (block locator + table-anchor detector), `validators.py`
+  (ИНН-10/12 + ОГРН-13/15 checksums), `dates.py`
+  (Russian-aware date parser extracted from `policy_period.py`
+  for reuse).
+
+### Changed
+
+- `is_complete` still gates on the seven legacy fields only. The
+  two new fields are non-mandatory and don't affect it.
+- `PolicyPeriodParser` now imports its date parser from
+  `extraction/dates.py`. Behaviour unchanged.
+
+### Tests
+
+- 131 new tests across the 11 new parsers and the supporting
+  modules. Total 190; legacy 59 unchanged.
+
 ## [0.2.0] — 2026-05-05
 
 Security maintenance release. No API changes.
@@ -66,4 +114,6 @@ Initial public release.
   (`ExtractedPolicy`, `MonetaryField`, etc.) may change before 1.0.
 - KASKO-only for now; ОСАГО support is on the roadmap.
 
+[0.3.0]: https://github.com/grigra27/polis-recognizer/releases/tag/v0.3.0
+[0.2.0]: https://github.com/grigra27/polis-recognizer/releases/tag/v0.2.0
 [0.1.0]: https://github.com/grigra27/polis-recognizer/releases/tag/v0.1.0

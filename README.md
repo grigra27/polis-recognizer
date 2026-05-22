@@ -18,6 +18,8 @@ Tesseract OCR fallback for scanned policies.
 | `premium` | `{value, currency}` | `{"value": 220000, "currency": "RUB"}` |
 | `sum_type` | `"aggregate"` / `"non_aggregate"` | `"non_aggregate"` |
 | `repair_mode` | `"dealer"` / `"service"` / `"cash"` | `"dealer"` |
+| `policyholder` | `{type, name, inn, ogrn, kpp, passport, birth_date}` | `{"type": "legal_entity", "name": "ООО \"Альфа\"", "inn": "7707083893", "ogrn": "1027700132195", "kpp": "770701001", "passport": None, "birth_date": None}` |
+| `policyholder_contacts` | `{phones, emails, address, postal_code}` | `{"phones": ["+74951234567"], "emails": ["contact@alpha.ru"], "address": "101000, г. Москва, ул. Ленина, д. 1", "postal_code": "101000"}` |
 
 ## Quick start
 
@@ -134,8 +136,20 @@ extractor = PolicyExtractor(
     psm=None,                     # Tesseract --psm (None = auto)
     oem=None,                     # Tesseract --oem (None = auto)
     max_image_size_bytes=None,    # reject images larger than this
+    extract_pii=False,            # opt-in for passport + birth date
 )
 ```
+
+### `extract_pii`
+
+`PolicyExtractor` does not extract passport or birth date by default
+— with `extract_pii=False`, `policyholder.passport` and
+`policyholder.birth_date` are always `None` even when the source
+text contains them. This keeps the default output safe to log /
+cache / persist without extra redaction work. Set `extract_pii=True`
+to opt in. Operational contact data (phone, email, address) is not
+gated — those handle data the caller has a legal basis to process
+under 152-ФЗ ст. 6 ч. 1 п. 5 (исполнение договора).
 
 ## License
 
@@ -144,21 +158,11 @@ commercial.
 
 ## Roadmap
 
-**Next up (target 0.3.0): policyholder + contacts.** Adds two new
-fields to the extractor output:
-
-- `policyholder` — contracting party: name, individual/legal-entity
-  type, INN/ОГРН/КПП, and (behind a PII opt-in flag) passport
-  reference and birth date.
-- `policyholder_contacts` — reachable channels: phone numbers
-  (normalized to E.164 `+7XXXXXXXXXX`), email addresses, raw postal
-  address, and postal code when present.
-
-Full design — anchors, regex strategy, INN/ОГРН checksum validation,
-PII gating, target precision/recall — in
-[docs/roadmap-policyholder.md](docs/roadmap-policyholder.md).
-
-**Further out:** ОСАГО support — the underlying field model already
+**Next up:** ОСАГО support — the underlying field model already
 accommodates it; only parser patterns need adding.
 
-See [CHANGELOG.md](CHANGELOG.md) for release history.
+Past releases — see [CHANGELOG.md](CHANGELOG.md). The design and
+implementation plan for the policyholder + contacts work shipped in
+0.3.0 is preserved in
+[docs/roadmap-policyholder.md](docs/roadmap-policyholder.md) for
+reference.

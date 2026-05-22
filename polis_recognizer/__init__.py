@@ -1,8 +1,11 @@
 """polis-recognizer — Russian insurance policy field extractor.
 
-Extracts 7 structured fields from KASKO/insurance policy PDFs:
+Extracts structured fields from KASKO insurance policy PDFs:
 ``policy_period``, ``franchise``, ``limit``, ``repair_mode``,
-``premium``, ``sum_type``, ``policy_number``.
+``premium``, ``sum_type``, ``policy_number``, plus ``policyholder``
+(name, type, INN, OGRN, KPP, and — behind an opt-in PII flag —
+passport and birth date) and ``policyholder_contacts`` (phones in
+E.164, emails, raw address, postal code).
 
 Quick start::
 
@@ -57,7 +60,7 @@ from .pdfplumber_ingestion import PdfPlumberIngestionService
 from .policy_ingestion import ExtractedTextResult, PolicyIngestionService
 
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 
 __all__ = [
