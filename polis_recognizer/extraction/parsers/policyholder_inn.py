@@ -27,7 +27,10 @@ import re
 from typing import List
 
 from ..candidates import Candidate, ConfidenceComponents
-from ..policyholder_block import locate_policyholder_block
+from ..policyholder_block import (
+    locate_policyholder_block,
+    table_has_policyholder_anchor,
+)
 from ..validators import validate_inn_10, validate_inn_12
 from .base import ExtractionContext, FieldParser
 
@@ -38,9 +41,6 @@ _INN_LABEL_AND_DIGITS_RE = re.compile(
 )
 
 _INN_TABLE_LABEL_RE = re.compile(r"^\s*ИНН\b", re.IGNORECASE)
-_STRAKH_TABLE_LABEL_RE = re.compile(
-    r"^\s*(?:Страхователь|СТРАХОВАТЕЛЬ)\b"
-)
 
 
 def _validate_any_length(s: str) -> bool:
@@ -48,14 +48,6 @@ def _validate_any_length(s: str) -> bool:
         return validate_inn_10(s)
     if len(s) == 12:
         return validate_inn_12(s)
-    return False
-
-
-def _table_has_policyholder_anchor(table) -> bool:
-    for row in table or []:
-        for cell in row or []:
-            if cell and _STRAKH_TABLE_LABEL_RE.match(cell):
-                return True
     return False
 
 
@@ -81,7 +73,7 @@ class PolicyholderINNParser(FieldParser):
         out: List[Candidate] = []
         for page in ctx.tables or []:
             for table in page or []:
-                if not _table_has_policyholder_anchor(table):
+                if not table_has_policyholder_anchor(table):
                     continue
                 for row in table:
                     if not row or len(row) < 2:

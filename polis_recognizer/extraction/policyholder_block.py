@@ -91,3 +91,23 @@ def policyholder_block_text(normalized: NormalizedText) -> Optional[str]:
     if span is None:
         return None
     return normalized.text[span[0] : span[1]]
+
+
+_TABLE_STRAKH_LABEL_RE = re.compile(
+    r"^\s*(?:Страхователь|СТРАХОВАТЕЛЬ)\b"
+)
+
+
+def table_has_policyholder_anchor(table) -> bool:
+    """True iff one of the table's cells is a "Страхователь" label.
+
+    Used by per-subfield parsers (INN, OGRN, KPP, phones, emails, …)
+    as a precondition for scanning a table: without a policyholder
+    anchor anywhere in the table, we cannot tell whose subfields the
+    rows belong to and the table is skipped.
+    """
+    for row in table or []:
+        for cell in row or []:
+            if cell and _TABLE_STRAKH_LABEL_RE.match(cell):
+                return True
+    return False

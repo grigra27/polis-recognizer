@@ -22,7 +22,10 @@ import re
 from typing import List
 
 from ..candidates import Candidate, ConfidenceComponents
-from ..policyholder_block import locate_policyholder_block
+from ..policyholder_block import (
+    locate_policyholder_block,
+    table_has_policyholder_anchor,
+)
 from .base import ExtractionContext, FieldParser
 
 
@@ -31,17 +34,6 @@ _KPP_LABEL_AND_DIGITS_RE = re.compile(
 )
 _KPP_DIGITS_RE = re.compile(r"(?<!\d)(\d{9})(?!\d)")
 _KPP_TABLE_LABEL_RE = re.compile(r"^\s*КПП\b", re.IGNORECASE)
-_STRAKH_TABLE_LABEL_RE = re.compile(
-    r"^\s*(?:Страхователь|СТРАХОВАТЕЛЬ)\b"
-)
-
-
-def _table_has_policyholder_anchor(table) -> bool:
-    for row in table or []:
-        for cell in row or []:
-            if cell and _STRAKH_TABLE_LABEL_RE.match(cell):
-                return True
-    return False
 
 
 class PolicyholderKPPParser(FieldParser):
@@ -66,7 +58,7 @@ class PolicyholderKPPParser(FieldParser):
         out: List[Candidate] = []
         for page in ctx.tables or []:
             for table in page or []:
-                if not _table_has_policyholder_anchor(table):
+                if not table_has_policyholder_anchor(table):
                     continue
                 for row in table:
                     if not row or len(row) < 2:
