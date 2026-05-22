@@ -144,8 +144,21 @@ commercial.
 
 ## Roadmap
 
-This 0.1.0 release focuses on KASKO. ОСАГО support is on the roadmap —
-the underlying field model already accommodates it; only parser
-patterns need to be added.
+**Next up (target 0.3.0): policyholder + contacts.** Adds two new
+fields to the extractor output:
+
+- `policyholder` — contracting party: name, individual/legal-entity
+  type, INN/ОГРН/КПП, and (behind a PII opt-in flag) passport
+  reference and birth date.
+- `policyholder_contacts` — reachable channels: phone numbers
+  (normalized to E.164 `+7XXXXXXXXXX`), email addresses, raw postal
+  address, and postal code when present.
+
+Full design — anchors, regex strategy, INN/ОГРН checksum validation,
+PII gating, target precision/recall — in
+[docs/roadmap-policyholder.md](docs/roadmap-policyholder.md).
+
+**Further out:** ОСАГО support — the underlying field model already
+accommodates it; only parser patterns need adding.
 
 See [CHANGELOG.md](CHANGELOG.md) for release history.
