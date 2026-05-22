@@ -11,12 +11,14 @@ from .franchise import FranchiseParser
 from .limit import LimitParser
 from .policy_number import PolicyNumberParser
 from .policy_period import PolicyPeriodParser
+from .policyholder_address import PolicyholderAddressParser
 from .policyholder_emails import PolicyholderEmailsParser
 from .policyholder_inn import PolicyholderINNParser
 from .policyholder_kpp import PolicyholderKPPParser
 from .policyholder_name import PolicyholderNameParser
 from .policyholder_ogrn import PolicyholderOGRNParser
 from .policyholder_phones import PolicyholderPhonesParser
+from .policyholder_postal_code import PolicyholderPostalCodeParser
 from .policyholder_type import PolicyholderTypeParser
 from .premium import PremiumParser
 from .repair_mode import RepairModeParser
@@ -43,6 +45,8 @@ ADDITIONAL_PARSERS = (
     PolicyholderKPPParser(),
     PolicyholderPhonesParser(),
     PolicyholderEmailsParser(),
+    PolicyholderAddressParser(),
+    PolicyholderPostalCodeParser(),
 )
 
 ALL_PARSERS = LEGACY_PARSERS + ADDITIONAL_PARSERS
