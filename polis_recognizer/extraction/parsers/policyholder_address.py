@@ -47,13 +47,20 @@ _ADDRESS_ANCHORS_RE = re.compile(
     re.IGNORECASE,
 )
 
-# Labels that close the address capture.
+# Labels that close the address capture. Includes both prose labels
+# (Тел, E-mail, Дата рождения) and the abbreviated form-field labels
+# seen in XLS-form-mask polises after pdfplumber column flattening
+# (ДАТА РОЖД., ПОЛ, ТЕЛ, РЕЗИДЕНТ — printed as inline pseudo-labels
+# next to the address).
 _ADDRESS_STOP_RE = re.compile(
     r"\s*(?:"
-    r"ИНН|КПП|ОГРН(?:ИП)?|"
-    r"Тел(?:ефон)?\b|"
+    r"ИНН\b|КПП\b|ОГРН(?:ИП)?\b|"
+    r"Тел(?:ефон)?\b|ТЕЛ\b|"
     r"E-?mail|Эл\.?\s*почта|Почта\s*:|"
-    r"Паспорт\b|Дата\s+рождения|г\.р\.|"
+    r"Паспорт\b|"
+    r"Дата\s+рождения|ДАТА\s+РОЖД|г\.р\.|"
+    r"ПОЛ\b|"
+    r"РЕЗИДЕНТ\b|"
     r"Контактн|"
     r"Страховщик|СТРАХОВЩИК|"
     r"Выгодоприобретатель"
@@ -130,6 +137,14 @@ class PolicyholderAddressParser(FieldParser):
                         for c in row[1:]
                         if (c or "").strip()
                     )
+                    # Same idea as the name parser's table-cell stop
+                    # (0.3.1): XLS form-mask polises join adjacent
+                    # form fields into a single value string. Without
+                    # this truncation the address slot ends up with
+                    # "…, д. 2 ДАТА РОЖД. 21.02.1966 ПОЛ М ТЕЛ".
+                    stop_match = _ADDRESS_STOP_RE.search(value_raw)
+                    if stop_match is not None:
+                        value_raw = value_raw[: stop_match.start()]
                     value = _normalize_address(value_raw)
                     if not _looks_like_address(value):
                         continue
