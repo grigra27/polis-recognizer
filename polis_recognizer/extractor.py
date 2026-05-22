@@ -287,7 +287,9 @@ def _build_policyholder(addl: dict, *, extract_pii: bool) -> Optional[dict]:
         "passport": _candidate_value(addl.get("policyholder_passport"))
         if extract_pii
         else None,
-        "birth_date": _candidate_value(addl.get("policyholder_birth_date"))
+        "birth_date": _to_date(
+            _candidate_value(addl.get("policyholder_birth_date"))
+        )
         if extract_pii
         else None,
     }

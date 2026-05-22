@@ -13,6 +13,7 @@ from datetime import datetime
 from typing import List, Optional, Tuple
 
 from ..candidates import Candidate, ConfidenceComponents
+from ..dates import parse_russian_date
 from .base import ExtractionContext, FieldParser
 
 
@@ -41,12 +42,6 @@ _DATE_QUOTED_SEP = r"[\s_\-—–]+"
 _DATE_TEXTUAL_QUOTED = rf"«?\s*\d{{1,2}}\s*»?{_DATE_QUOTED_SEP}{_MONTH_STEM}{_DATE_QUOTED_SEP}\d{{4}}"  # placeholder-guard: ignore
 # "00 час. 00 мин." — also VSK; optional and tolerant of dot/no-dot.
 _TIME_TEXTUAL_PREFIX = r"(?:\d{1,2}\s+час\.?\s+\d{1,2}\s+мин\.?\s+)?"
-
-_RU_MONTH_BY_STEM = {
-    "январ": 1, "феврал": 2, "март": 3, "апрел": 4,
-    "ма": 5, "июн": 6, "июл": 7, "август": 8,
-    "сентябр": 9, "октябр": 10, "ноябр": 11, "декабр": 12,
-}
 
 _PATTERNS = [
     # 1. Strong label + optional time prefix on each bound.
@@ -152,32 +147,9 @@ _POSITIONAL_ALFA_STRENGTH = 0.65
 _POSITIONAL_ALFA_CONTEXT = 0.3
 
 
-def _parse_iso(date_str: str) -> Optional[str]:
-    s = (date_str or "").strip()
-    if not s:
-        return None
-    # Strip guillemets, quotes, underscores, dashes left in by OCR
-    # ("« 25» марта _ 2025" → "25 марта 2025"). Then collapse whitespace.
-    s = re.sub(r"[«»\"'_\-—–]", " ", s)
-    s = re.sub(r"\s+", " ", s).strip()
-    # Numeric: DD.MM.YYYY or DD.MM.YY.
-    for fmt in ("%d.%m.%Y", "%d.%m.%y"):
-        try:
-            return datetime.strptime(s, fmt).strftime("%Y-%m-%d")
-        except ValueError:
-            continue
-    # Textual: "DD <month-word> YYYY" (Russian).
-    parts = s.split()
-    if len(parts) == 3 and parts[0].isdigit() and parts[2].isdigit():
-        day, month_word, year = parts
-        mw = month_word.lower()
-        for stem, month_num in _RU_MONTH_BY_STEM.items():
-            if mw.startswith(stem):
-                try:
-                    return datetime(int(year), month_num, int(day)).strftime("%Y-%m-%d")
-                except ValueError:
-                    return None
-    return None
+# Alias kept for in-module readability; semantics identical to
+# extraction.dates.parse_russian_date.
+_parse_iso = parse_russian_date
 
 
 class PolicyPeriodParser(FieldParser):
