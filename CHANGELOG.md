@@ -5,6 +5,73 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] — 2026-05-22
+
+Precision pass over the policyholder + contacts feature. The output
+is meaningfully cleaner on real lizinging / corporate КАСКО polises
+— the price is a drop in raw coverage numbers, because most of the
+"coverage" we were claiming in 0.3.1 was actually broker / lizingodatel
+data leaking into the policyholder slots.
+
+### Fixed
+
+- **Slash-combined anchor labels.** `СТРАХОВАТЕЛЬ / ЛИЗИНГОПОЛУЧАТЕЛЬ:`
+  (and similar with `ВЫГОДОПРИОБРЕТАТЕЛЬ` / `ЗАЛОГОДАТЕЛЬ` /
+  `ГРУЗОПОЛУЧАТЕЛЬ`) is now absorbed by the anchor regex as a single
+  unit, so the block span starts AFTER the combined label rather
+  than in the middle of " / ЛИЗИНГОПОЛУЧАТЕЛЬ:". Eliminates names
+  like `"/ ЛИЗИНГОПОЛУЧА"`.
+- **Bank-details name reject.** Captures starting with bank tokens
+  (`р/с`, `к/с`, `БИК`, `БАНК`, `кор. счет`) or with a numbered
+  contract clause (`10.2 …`, `1) …`) are no longer emitted as
+  policyholder names. Catches cases where pdfplumber column
+  flattening put the actual name on a different page and the line
+  immediately after the anchor is bank details / a contract clause.
+- **Row-grouped table parsing.** A new helper
+  `policyholder_table_rows(table)` returns the rows of a pdfplumber
+  table that start at the "Страхователь" label and end just before
+  the next other-party label (Брокер / Страховщик /
+  Выгодоприобретатель / Собственник / Лизингодатель /
+  Залогодержатель / Контактное лицо / Представитель). Applied to
+  the INN / OGRN / KPP / phones / emails / address / postal_code
+  parsers. Stops broker contacts (`online@on-linebroker.ru`, the
+  "г. Люберцы, Парковая, д.3" office address, etc.) from being
+  attributed to the policyholder when both parties share the same
+  table.
+
+### Measured impact
+
+Re-run on `digital_pdf/batch_1` (23 files), 0.3.1 → 0.3.2:
+
+| Field | 0.3.1 | 0.3.2 | Note |
+|---|---|---|---|
+| `policyholder.name` | 95.7% | 82.6% | -3 files = removed garbage (`/ ЛИЗИНГОПОЛУЧА`, `10.2. Выплата…`) |
+| `policyholder.type` | 78.3% | 73.9% | -1 file (type of a now-removed garbage name) |
+| `contacts.phones` | 17.4% | 8.7% | -2 = broker phones removed |
+| `contacts.emails` | 34.8% | 0.0% | every "email" in 0.3.1 was actually `online@on-linebroker.ru` |
+| `contacts.address` | 95.7% | 73.9% | -5 = broker addresses removed |
+| `contacts.postal_code` | 91.3% | 65.2% | -6 = broker-address indexes |
+
+The headline-looking regressions are precision wins. Lizinging /
+corporate КАСКО polises in batch_1 simply don't list policyholder
+contact channels (those are on the corporate signature block, not
+inside the policy table); 0.3.1 was incorrectly returning broker
+contact data in those slots. 0.3.2 returns `None`, which is the
+honest answer.
+
+### Tests
+
+10 new regression tests in
+`tests/test_corpus_regressions_v032.py`. 222 tests pass total.
+
+### Known limitations remaining
+
+- **Address form-mask tail.** XLS form-mask polises join address with
+  adjacent form fields ("422774, РТ, …, ул. Новая, д. 2 ДАТА РОЖД.
+  21.02.1966 ПОЛ М ТЕЛ"). The address parser captures the whole
+  joined string. Fix planned for 0.3.3 — apply `_ADDRESS_STOP_RE` to
+  table cell values, same idea as the name table-cell stop in 0.3.1.
+
 ## [0.3.1] — 2026-05-22
 
 Precision and coverage fixes for the policyholder + contacts feature,
@@ -190,6 +257,7 @@ Initial public release.
   (`ExtractedPolicy`, `MonetaryField`, etc.) may change before 1.0.
 - KASKO-only for now; ОСАГО support is on the roadmap.
 
+[0.3.2]: https://github.com/grigra27/polis-recognizer/releases/tag/v0.3.2
 [0.3.1]: https://github.com/grigra27/polis-recognizer/releases/tag/v0.3.1
 [0.3.0]: https://github.com/grigra27/polis-recognizer/releases/tag/v0.3.0
 [0.2.0]: https://github.com/grigra27/polis-recognizer/releases/tag/v0.2.0

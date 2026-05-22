@@ -60,7 +60,7 @@ from .pdfplumber_ingestion import PdfPlumberIngestionService
 from .policy_ingestion import ExtractedTextResult, PolicyIngestionService
 
 
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 
 
 __all__ = [
