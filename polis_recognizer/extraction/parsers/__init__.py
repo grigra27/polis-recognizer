@@ -11,6 +11,8 @@ from .franchise import FranchiseParser
 from .limit import LimitParser
 from .policy_number import PolicyNumberParser
 from .policy_period import PolicyPeriodParser
+from .policyholder_name import PolicyholderNameParser
+from .policyholder_type import PolicyholderTypeParser
 from .premium import PremiumParser
 from .repair_mode import RepairModeParser
 from .sum_type import SumTypeParser
@@ -29,6 +31,8 @@ ADDITIONAL_PARSERS = (
     PremiumParser(),
     SumTypeParser(),
     PolicyNumberParser(),
+    PolicyholderNameParser(),
+    PolicyholderTypeParser(),
 )
 
 ALL_PARSERS = LEGACY_PARSERS + ADDITIONAL_PARSERS
