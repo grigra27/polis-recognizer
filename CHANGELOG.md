@@ -5,6 +5,82 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] — 2026-05-22
+
+Precision and coverage fixes for the policyholder + contacts feature,
+derived from running 0.3.0 against the real-corpus
+`digital_pdf/batch_1` (23 lizinging / corporate КАСКО polises).
+No API changes; same shape, more accurate values.
+
+### Fixed
+
+- **Block-end stoppers** now include `Собственник` / `Лизингодатель` /
+  `ОБРЕМЕНЕНИЕ` / `Залогодержатель`. Previously, the policyholder
+  block in a lizinging contract could over-run into the lizingodatel
+  section, picking up its ИНН/ОГРН/КПП and surfacing them as the
+  policyholder's.
+- **Bank-line guard** for `policyholder_ogrn` and `policyholder_kpp`:
+  matches on a line that also contains banking markers (`р/с`, `к/с`,
+  `БИК`, `кор. счет`) are rejected. Real corpus example: a line like
+  `"р/с 40702… БИК 044030704, ОГРН 1074705005484, КПП 470501001"`
+  carries the **lizingodatel's** bank details, not the policyholder's;
+  before the guard, that ОГРН/КПП leaked into `policyholder.*`.
+- **Strict anchor with prose detection.** `locate_policyholder_block`
+  now scores each `Страхователь` occurrence and prefers labeled
+  positions (start of line, after `1.` / `2. `) over prose
+  continuations like *"Страхователь подтверждает, что Правила
+  страхования получил…"*. A lowercase Cyrillic letter immediately
+  following the anchor strongly downweights the match — that's the
+  classic Russian verb signal of prose. The fallback path still
+  returns the highest-scored anchor even when every match is prose,
+  so coverage doesn't regress on prose-only documents.
+- **Name table-cell truncation.** When pdfplumber surfaces a labeled
+  cell containing form-mask join debris like
+  `"ИП Саакян Самвел Аршакович ИНН 163400896388 РЕЗИДЕНТ РФ ДА НЕТ"`,
+  the captured name now truncates at the first known subfield label
+  (`ИНН` / `КПП` / `ОГРН` / `Адрес` / `Паспорт` …). The same
+  stop-regex that already terminated in-text captures is reused.
+- **Postal code from anchored tables.** `PolicyholderPostalCodeParser`
+  falls back to scanning tables anchored on "Страхователь" when the
+  text-block scan finds nothing. In XLS form-mask polises the address
+  often lives only in the table layer, never in the text layer,
+  which previously produced `policyholder_contacts.postal_code = None`
+  despite the address containing a clear 6-digit index.
+
+### Measured impact
+
+Re-run on `digital_pdf/batch_1` (23 files):
+
+| Field | 0.3.0 | 0.3.1 |
+|---|---|---|
+| `policyholder.type` | 60.9% | 78.3% |
+| `policyholder.inn` | 47.8% | 65.2% |
+| `policyholder.kpp` | 21.7% | 26.1% |
+| `contacts.postal_code` | 47.8% | 91.3% |
+| `policyholder.ogrn` | 17.4% | 13.0% * |
+
+`*` `ogrn` count went down by one because the bank-line guard now
+rejects the lizingodatel's ОГРН it used to (wrongly) emit on lizinging
+contracts. The remaining ОГРН values are higher-precision.
+
+### Tests
+
+14 new regression tests (`tests/test_corpus_regressions_v031.py`)
+covering each fix against synthetic versions of the corpus failure
+modes. 204 tests pass total.
+
+### Known limitations remaining
+
+- **Broker email/address bleed** — when an "Страхователь" anchor
+  exists in a table that also contains an insurance broker's contacts,
+  the contact parsers can extract the broker's email
+  (`online@on-linebroker.ru`) and office address instead of the
+  policyholder's. Fix planned for 0.3.2 via table row-grouping.
+- **Slash-combined labels** — `"СТРАХОВАТЕЛЬ / ЛИЗИНГОПОЛУЧАТЕЛЬ:"`
+  on a single line with the content on a different page after
+  pdfplumber column flattening produces names like `"/ ЛИЗИНГОПОЛУЧА"`.
+  Anchor regex extension planned for 0.3.2.
+
 ## [0.3.0] — 2026-05-22
 
 Adds policyholder + contacts extraction. No breaking changes to the
@@ -114,6 +190,7 @@ Initial public release.
   (`ExtractedPolicy`, `MonetaryField`, etc.) may change before 1.0.
 - KASKO-only for now; ОСАГО support is on the roadmap.
 
+[0.3.1]: https://github.com/grigra27/polis-recognizer/releases/tag/v0.3.1
 [0.3.0]: https://github.com/grigra27/polis-recognizer/releases/tag/v0.3.0
 [0.2.0]: https://github.com/grigra27/polis-recognizer/releases/tag/v0.2.0
 [0.1.0]: https://github.com/grigra27/polis-recognizer/releases/tag/v0.1.0
