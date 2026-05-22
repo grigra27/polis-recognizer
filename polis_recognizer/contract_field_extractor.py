@@ -437,6 +437,7 @@ class ContractFieldExtractor:
         correlation_id: Optional[str] = None,
         *,
         tables: Optional[list] = None,
+        extract_pii: bool = False,
     ) -> ContractFieldsResult:
         """Extract contract fields via the deterministic v2 pipeline.
 
@@ -475,7 +476,8 @@ class ContractFieldExtractor:
                 text = text[:self.MAX_TEXT_LENGTH]
 
             v2_result = run_extraction(
-                text, correlation_id=correlation_id, tables=tables
+                text, correlation_id=correlation_id, tables=tables,
+                extract_pii=extract_pii,
             )
             mapped = _map_v2_to_legacy(v2_result, self)
             processing_time_ms = (time.time() - start_time) * 1000

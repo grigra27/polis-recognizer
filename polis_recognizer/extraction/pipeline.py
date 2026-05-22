@@ -54,6 +54,7 @@ def run_extraction(
     *,
     correlation_id: Optional[str] = None,
     tables: Optional[List[List[List[List[str]]]]] = None,
+    extract_pii: bool = False,
 ) -> ExtractionV2Result:
     """Run the full v2 extraction pipeline and return structured candidates.
 
@@ -66,6 +67,10 @@ def run_extraction(
             that read tables get a higher-confidence path; the others
             ignore this argument. Default ``None`` keeps the legacy
             text-only contract intact.
+        extract_pii: Opt-in gate for special-category PII parsers
+            (passport, birth date). Default ``False`` keeps those
+            parsers inert even if their patterns match the input.
+            Contact parsers (phone/email/address) are not affected.
     """
     start = time.time()
     normalizer = TextNormalizer()
@@ -78,6 +83,7 @@ def run_extraction(
         layout=layout,
         negation=negation,
         tables=tables or [],
+        extract_pii=extract_pii,
     )
     ranker = CandidateRanker()
 

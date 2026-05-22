@@ -34,6 +34,12 @@ class ExtractionContext:
     # use tables ignore this — same dataflow as the legacy text-only
     # contract.
     tables: List[List[List[List[str]]]] = field(default_factory=list)
+    # Opt-in gate for special-category PII parsers (passport, birth
+    # date). When False (default), those parsers short-circuit and
+    # return []. Contact parsers (phone/email/address) are NOT gated —
+    # those handle operational data the caller has a legal basis to
+    # process (152-ФЗ ст. 6 ч. 1 п. 5: исполнение договора).
+    extract_pii: bool = False
 
 
 class FieldParser(ABC):

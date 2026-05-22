@@ -40,6 +40,13 @@ class ExtractedPolicy:
     premium: Optional[dict] = None  # {"value": float, "currency": str}
     sum_type: Optional[str] = None  # "aggregate" | "non_aggregate"
     repair_mode: Optional[str] = None  # "dealer" | "service" | "cash"
+    # {"type", "name", "inn", "ogrn", "kpp", "passport", "birth_date"}.
+    # ``passport`` and ``birth_date`` are always None unless the
+    # extractor was built with ``extract_pii=True``.
+    policyholder: Optional[dict] = None
+    # {"phones": list[str], "emails": list[str], "address": str|None,
+    # "postal_code": str|None}. Phones normalized to E.164 (+7XXXXXXXXXX).
+    policyholder_contacts: Optional[dict] = None
 
     extraction_method: str = "unknown"  # "text_layer" | "ocr" | "mixed" | "failed"
     extraction_status: str = "unknown"  # "DONE" | "FAILED" | "skipped"
@@ -93,6 +100,7 @@ class PolicyExtractor:
         max_image_size_bytes: Optional[int] = None,
         psm: Optional[int] = None,
         oem: Optional[int] = None,
+        extract_pii: bool = False,
     ) -> None:
         self._ocr_service = OCRService(
             page_limit=ocr_page_limit,
@@ -109,6 +117,10 @@ class PolicyExtractor:
             text_service=build_text_service(pdf_extractor),
         )
         self._field_extractor = ContractFieldExtractor()
+        # PII gate is set once at construction time so a caller can't
+        # accidentally leak passport / birth-date data by forgetting to
+        # pass the flag on one of several entry points.
+        self._extract_pii = extract_pii
 
     # ------------------------------------------------------------------
     # Entry points
@@ -130,8 +142,11 @@ class PolicyExtractor:
         result = self._field_extractor.extract_contract_fields(
             outcome.extracted_text,
             tables=list(outcome.tables) if outcome.tables else None,
+            extract_pii=self._extract_pii,
         )
-        return self._build_extracted_policy(result, outcome)
+        return self._build_extracted_policy(
+            result, outcome, extract_pii=self._extract_pii
+        )
 
     def extract_from_text(self, text: str) -> ExtractedPolicy:
         """Extract from already-extracted text (no PDF/OCR step).
@@ -139,15 +154,22 @@ class PolicyExtractor:
         Useful for testing or when text comes from a non-PDF source.
         Tables-aware paths are not available on this entry point.
         """
-        result = self._field_extractor.extract_contract_fields(text)
-        return self._build_extracted_policy(result, outcome=None)
+        result = self._field_extractor.extract_contract_fields(
+            text, extract_pii=self._extract_pii
+        )
+        return self._build_extracted_policy(
+            result, outcome=None, extract_pii=self._extract_pii
+        )
 
     # ------------------------------------------------------------------
     # Conversion helpers
 
     @staticmethod
     def _build_extracted_policy(
-        contract_result: Any, outcome: Optional[Any]
+        contract_result: Any,
+        outcome: Optional[Any],
+        *,
+        extract_pii: bool = False,
     ) -> ExtractedPolicy:
         cf_dict = contract_result.to_dict()
         addl = getattr(contract_result, "additional_fields", {}) or {}
@@ -219,6 +241,8 @@ class PolicyExtractor:
             premium=premium_value,
             sum_type=sum_type_value,
             repair_mode=repair_value,
+            policyholder=_build_policyholder(addl, extract_pii=extract_pii),
+            policyholder_contacts=_build_contacts(addl),
             extraction_method=getattr(outcome, "extraction_method", "unknown") if outcome else "text_only",
             extraction_status=getattr(contract_result, "extraction_status", "unknown"),
             confidence_per_field=confidence,
@@ -226,6 +250,68 @@ class PolicyExtractor:
             warnings=list(getattr(outcome, "warnings", []) or []) if outcome else [],
             text_length=len(getattr(outcome, "extracted_text", "")) if outcome else 0,
         )
+
+
+def _candidate_value(addl_entry):
+    """Unpack ``.value`` from a winning candidate dict, or return ``None``.
+
+    Entries in ``additional_fields`` are either ``None`` (no winner) or
+    ``candidate.to_dict()`` (the v2 ranker's pick). This helper hides
+    that shape from composer code so call sites stay flat.
+    """
+    if not addl_entry or not isinstance(addl_entry, dict):
+        return None
+    return addl_entry.get("value")
+
+
+def _build_policyholder(addl: dict, *, extract_pii: bool) -> Optional[dict]:
+    """Compose the ``policyholder`` sub-dict from per-sub-field candidates.
+
+    Returns ``None`` when neither name nor INN was extracted — the
+    signal "no policyholder block was found in the document". Passport
+    and birth_date are forced to ``None`` when ``extract_pii`` is False,
+    even if the corresponding parsers produced values. PR#1 wires the
+    composer; the parsers themselves arrive in later PRs of the
+    policyholder roadmap.
+    """
+    name = _candidate_value(addl.get("policyholder_name"))
+    inn = _candidate_value(addl.get("policyholder_inn"))
+    if name is None and inn is None:
+        return None
+    return {
+        "type": _candidate_value(addl.get("policyholder_type")),
+        "name": name,
+        "inn": inn,
+        "ogrn": _candidate_value(addl.get("policyholder_ogrn")),
+        "kpp": _candidate_value(addl.get("policyholder_kpp")),
+        "passport": _candidate_value(addl.get("policyholder_passport"))
+        if extract_pii
+        else None,
+        "birth_date": _candidate_value(addl.get("policyholder_birth_date"))
+        if extract_pii
+        else None,
+    }
+
+
+def _build_contacts(addl: dict) -> Optional[dict]:
+    """Compose the ``policyholder_contacts`` sub-dict.
+
+    Returns ``None`` when no contact channel was extracted at all.
+    ``phones`` / ``emails`` are always lists (possibly empty);
+    ``address`` and ``postal_code`` are scalars or ``None``.
+    """
+    phones = _candidate_value(addl.get("policyholder_phones")) or []
+    emails = _candidate_value(addl.get("policyholder_emails")) or []
+    address = _candidate_value(addl.get("policyholder_address"))
+    postal = _candidate_value(addl.get("policyholder_postal_code"))
+    if not phones and not emails and address is None:
+        return None
+    return {
+        "phones": list(phones),
+        "emails": list(emails),
+        "address": address,
+        "postal_code": postal,
+    }
 
 
 def _to_date(value):
