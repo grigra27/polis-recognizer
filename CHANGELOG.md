@@ -5,6 +5,141 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.4] — 2026-05-25
+
+Eleven fixes derived from a full-corpus run across
+`digital_pdf/batch_1..batch_7` (644 files). The corpus inspection was
+delegated to six parallel sub-agents (one per batch), each surfacing
+the policyholder + contacts failure patterns specific to its batch.
+This release bundles the common-denominator fixes.
+
+### Fixed
+
+- **Soft hyphen U+00AD** in name / address — pdfplumber emits SHY
+  where the source PDF marked an optional line break
+  (`Прогресс­Тех`, `Санкт­Петербург`, `e­mail`, `пр­кт`). The
+  normaliser now replaces SHY with a regular ASCII hyphen so the
+  rendered form is preserved; SHY-broken words at end-of-line get
+  joined by the existing hyphen-linebreak healer.
+- **Postal code derivation** now keys off the leading 6 digits of the
+  captured address only — the previous block-scan would catch VIN /
+  ПТС / ПСМ 6-digit tails (e.g. `VIN Z94C241BBSR270155` → postal
+  code `270155`) on documents whose actual address had no index. On
+  batch_2 alone, ~15/31 files were affected.
+- **Form-mask label rows** (`Наименование`, `Полное наименование`,
+  `Юридический`, `ФИО гражданина`) are now recognised as labels both
+  in-text (skip to next non-empty line) and in pdfplumber tables
+  (treat the row as a name-value row alongside the bare "Страхователь"
+  rows). РСГ / СОГАЗ / SGZA / АльфаЛизинг XLS forms.
+- **Address stoppers** extended with `Фактический адрес`,
+  `Юридический адрес`, `Почтовый адрес`, `Адрес места нахождения`,
+  `Адрес офиса`, `Адрес проживания`, `Банковские реквизиты`, `Банк:`,
+  `р/с`, `к/с`, `БИК`, `Корреспондентский счет`, `ТС передан`,
+  `Срок страхования`, `Период страхования`, `VIN`, `Гос. рег.`,
+  `Год изготовления`, `Грузовой`, `СВЕДЕНИЯ О ТРАНСПОРТНОМ СРЕДСТВЕ`,
+  `СОБСТВЕННИК`, `Лизингодатель`, `ОБРЕМЕНЕНИЕ`, abbreviated
+  `Моб.тел.` / `Дом.тел.` / `Сотовый`.
+- **Placeholder phones rejected** — `+71111111111`, `+70000000000`,
+  `+79999999999` and any 10-digit local part with a single repeated
+  digit. These are template defaults on lizinging-contract masks.
+- **ИП → individual** classification. 0.3.3 treated ИП as
+  `legal_entity` (it's registered as a business), but on real corpus
+  that obscures the natural-person status downstream CRM and 152-ФЗ
+  flows care about. ИП and `Индивидуальный предприниматель` now map
+  to `individual`. Callers needing the entrepreneur subtype can read
+  the `ИП ` prefix from `policyholder.name` or the 15-digit ОГРНИП.
+- **Disclaimer prose** like `Информация, указанная в Полисе, проверена
+  и подтверждается. Страхователь...`, `проинформирован об условиях`,
+  `условия Правил страхования разъяснены` are no longer captured as
+  policyholder names. Extends the prose-anchor reject logic from 0.3.3.
+- **Signature / footer rejection** — captures starting with `Подпись`,
+  `Идентификатор документа`, `Уполномоченный представи`, `М. П.`,
+  `Инициалы, Фамилия`, `подпись Ф.И.О.`, `«16» апреля 2024 г.`,
+  `No 2037207-1036257/24` (policy number), `/ Губин Ю.И.` (signature
+  lead-in), `места нахождения`, `по месту жительства`.
+- **Multi-line legal name continuation** — when the captured value is
+  a pure form word (`ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ`,
+  `Акционерное общество`, etc.) without the quoted brand, or has an
+  unbalanced quote, the parser now pulls 1–2 next lines to complete
+  the name. Real corpus example: `ОБЩЕСТВО С ОГРАНИЧЕННОЙ
+  ОТВЕТСТВЕННОСТЬЮ\n"ИНФОКАР"` → `ОБЩЕСТВО С ОГРАНИЧЕННОЙ
+  ОТВЕТСТВЕННОСТЬЮ "ИНФОКАР"` instead of just the form word.
+- **`Адрес страхователя:` and related compound labels** now
+  recognised as full address anchors (`Адрес страхователя`,
+  `Адрес места нахождения`, `Адрес места жительства`, `Адрес
+  регистрации`, `Адрес ФЛ`/`ИП`/`ЮЛ`). Previously
+  `Адрес страхователя: 455000, …` was being parsed as `Адрес` label +
+  value `страхователя`.
+- **Numbered-prefix anchors** in pdfplumber tables. Section headers
+  printed as `2. СТРАХОВАТЕЛЬ / ЛИЗИНГОПОЛУЧАТЕЛЬ:` /
+  `3. ЛИЗИНГОДАТЕЛЬ:` now register as policyholder / other-party row
+  anchors. Without this, РСГ / АльянсЛизинг tables produced empty
+  row ranges, so sub-field parsers couldn't see the
+  `Наименование` row with the actual name.
+- **Pluralised "Выгодоприобретатели"** (with `и` ending vs the
+  singular `ь`) now closes the policyholder block — the singular
+  regex was missing the plural forms.
+- **`\b` word boundaries on name stop labels** — `Тел`, `ИНН`, `КПП`
+  etc. now require a word boundary at both ends. Without the trailing
+  `\b`, case-insensitive search matched `ТЕЛ` inside `СТРОИТЕЛЬНОЕ`,
+  chopping captured legal names mid-word
+  (`...СПЕЦИАЛИЗИРОВАННОЕ СТРОИ`).
+
+### Measured impact
+
+Full-corpus run on `digital_pdf/batch_1..batch_7` (644 files),
+0.3.3 (batch_1 only) → 0.3.4 (all batches):
+
+| Field | 0.3.3 batch_1 | 0.3.4 all batches |
+|---|---|---|
+| `policyholder.name` | 87.0% (with garbage) | **81.5%** (525/644, clean) |
+| `policyholder.type` | 73.9% | 65.8% (424/644) |
+| `policyholder.inn` | 65.2% | 40.1% (258/644) |
+| `contacts.address` | 73.9% | **78.1%** (503/644) |
+| `contacts.postal_code` | 65.2% | **58.4%** (376/644) |
+
+Per-batch name extraction under 0.3.4 (clean — disclaimer prose,
+broker contacts, lizingodatel ИНН/КПП/ОГРН leaks no longer surface
+as policyholder fields):
+
+| Batch | Files | name % | address % | postal % |
+|---|---|---|---|---|
+| 1 | 23 | **100.0%** | 95.7% | 82.6% |
+| 2 | 31 | 80.6% | 77.4% | 16.1% |
+| 3 | 11 | 81.8% | 81.8% | 27.3% |
+| 4 | 68 | 86.8% | 85.3% | 23.5% |
+| 5 | 145 | 76.6% | 75.9% | 65.5% |
+| 6 | 161 | 88.8% | 80.7% | 70.8% |
+| 7 | 205 | 75.6% | 73.2% | 60.5% |
+
+Cross-batch aggregate coverage is below batch_1 because batches 4-7
+include sizable subsets of formats this release still doesn't
+support — see "Known limitations" below.
+
+### Tests
+
+34 new regression tests in `tests/test_corpus_regressions_v034.py`,
+each derived from a specific failure observed in the corpus run.
+261 tests pass total. ИП classification tests from 0.3.1 updated to
+expect `individual` instead of `legal_entity`.
+
+### Known limitations (defer to future releases)
+
+- **ВСК «Классика» 2-col `ФИО гражданина / наименование ИП, юр. лица`
+  layout** (~20 files across batches 2/4) — needs a dedicated
+  per-insurer extractor.
+- **Lizingodatel ИНН (`7825496985`) substitution** when the Страхователь
+  row has no INN but the next row (АльянсЛизинг) does (~21 files
+  across batches 5/6) — needs INN-after-name proximity boundary.
+- **Альянс-Лизинг "См. Особые условия" template** (~25 files in
+  batch_6) — name extracted, INN/contacts on a different page that
+  pdfplumber column-flattens incorrectly.
+- **ВСК signature-only anchor** (~11 files in batch_4) — policyholder
+  data is in a "Сведения о Страхователе" table on another page that
+  the current locator doesn't reach.
+- **2-col "АДРЕСА, РЕКВИЗИТЫ И ПОДПИСИ СТОРОН"** — pdfplumber column
+  flattening puts policyholder data in the insurer column.
+
 ## [0.3.3] — 2026-05-23
 
 Address-from-table cleanup. Closes the last known broker / form-mask
@@ -291,6 +426,7 @@ Initial public release.
   (`ExtractedPolicy`, `MonetaryField`, etc.) may change before 1.0.
 - KASKO-only for now; ОСАГО support is on the roadmap.
 
+[0.3.4]: https://github.com/grigra27/polis-recognizer/releases/tag/v0.3.4
 [0.3.3]: https://github.com/grigra27/polis-recognizer/releases/tag/v0.3.3
 [0.3.2]: https://github.com/grigra27/polis-recognizer/releases/tag/v0.3.2
 [0.3.1]: https://github.com/grigra27/polis-recognizer/releases/tag/v0.3.1

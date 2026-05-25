@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "polis-recognizer"
-version = "0.3.3"
+version = "0.3.4"
 description = "Russian KASKO insurance policy field extractor — pulls structured fields (policy terms + policyholder + contacts) from PDF policies via text-layer, tables, and OCR fallback."
 readme = "README.md"
 license = { text = "MIT" }
