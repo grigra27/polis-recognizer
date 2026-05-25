@@ -28,15 +28,18 @@ class TestOrgPrefixRule:
         assert cand.value == "legal_entity"
         assert cand.pattern_id == "org_prefix"
 
-    def test_ip_prefix_marks_legal_entity(self):
-        # ИП — natural person registered as entrepreneur, but treated as
-        # legal_entity in the type schema (see parser docstring).
+    def test_ip_prefix_marks_individual(self):
+        # ИП — natural person registered as entrepreneur. 0.3.4 treats
+        # them as individual (the natural-person semantics that
+        # downstream CRM / 152-ФЗ flows care about); callers needing
+        # the entrepreneur subtype can detect it via the "ИП " prefix
+        # in policyholder.name or the 15-digit ОГРНИП.
         text = "Страхователь: ИП Петров Петр Петрович\n"
         cand = run_extraction(text).additional_fields.get(
             "policyholder_type"
         )
-        assert cand is not None and cand.value == "legal_entity"
-        assert cand.pattern_id == "org_prefix"
+        assert cand is not None and cand.value == "individual"
+        assert cand.pattern_id == "ip_prefix"
 
     def test_pao_prefix_marks_legal_entity(self):
         text = "Страхователь: ПАО Сбербанк\n"
@@ -109,16 +112,18 @@ class TestNoMatch:
 
 
 class TestRulePriority:
-    def test_org_prefix_beats_inn_12(self):
-        # ИП Петров has ИНН-12 (12-digit) but ИП prefix should win and
-        # classify as legal_entity, not individual.
+    def test_ip_prefix_wins_via_dedicated_rule(self):
+        # ИП Петров has ИНН-12 (12-digit). Both the ip_prefix rule and
+        # the inn12_checksum rule independently classify as individual,
+        # but ip_prefix runs first so it's the one that wins (clearer
+        # provenance in diagnostics — pattern_id reflects WHY).
         text = f"Страхователь: ИП Петров Петр Петрович\nИНН {_VALID_INN_12}\n"
         cand = run_extraction(text).additional_fields.get(
             "policyholder_type"
         )
         assert cand is not None
-        assert cand.value == "legal_entity"
-        assert cand.pattern_id == "org_prefix"
+        assert cand.value == "individual"
+        assert cand.pattern_id == "ip_prefix"
 
 
 class TestExtractedPolicyIntegration:

@@ -54,7 +54,11 @@ _BLOCK_START_RE = re.compile(
 _BLOCK_END_RE = re.compile(
     r"(?:"
     r"Страховщик|СТРАХОВЩИК|"
-    r"Выгодоприобретатель|ВЫГОДОПРИОБРЕТАТЕЛЬ|"
+    # The ending "Выгодоприобретатель" with a soft sign covers only the
+    # nominative singular; on real polises declined / pluralised forms
+    # ("Выгодоприобретатели" / "-я" / "-ю" / "-ем") also need to close
+    # the block. The character class catches all six common endings.
+    r"Выгодоприобретател[ьеяюи]|ВЫГОДОПРИОБРЕТАТЕЛ[ЬЕЯЮИ]|"
     r"Собственник|СОБСТВЕННИК|"
     r"Лизингодатель|ЛИЗИНГОДАТЕЛЬ|"
     r"Залогодержатель|ЗАЛОГОДЕРЖАТЕЛЬ|"
@@ -181,8 +185,12 @@ def policyholder_block_text(normalized: NormalizedText) -> Optional[str]:
     return normalized.text[span[0] : span[1]]
 
 
+# Some pdfplumber polices print the policyholder section header as
+# "2. СТРАХОВАТЕЛЬ / ЛИЗИНГОПОЛУЧАТЕЛЬ:" or "1. Страхователь:" with a
+# numbered-list prefix. The optional ``\d+[\.\)]\s*`` head absorbs
+# that prefix so the row still qualifies as the policyholder anchor.
 _TABLE_STRAKH_LABEL_RE = re.compile(
-    r"^\s*(?:Страхователь|СТРАХОВАТЕЛЬ)\b"
+    r"^\s*(?:\d+[\.\)]\s*)?(?:Страхователь|СТРАХОВАТЕЛЬ)\b"
 )
 
 # Labels of OTHER parties that close the policyholder rows range
@@ -195,8 +203,11 @@ _TABLE_STRAKH_LABEL_RE = re.compile(
 # ["Email", "online@on-linebroker.ru"] BEFORE the
 # ["Страхователь", "<actual name>"] row. Without row-grouping,
 # `online@on-linebroker.ru` lands in `policyholder_contacts.emails`.
+#
+# Same numbered-prefix optionality as the start anchor — РСГ polices
+# emit headers like "3. ЛИЗИНГОДАТЕЛЬ:" / "1. СТРАХОВЩИК".
 _TABLE_OTHER_PARTY_RE = re.compile(
-    r"^\s*(?:"
+    r"^\s*(?:\d+[\.\)]\s*)?(?:"
     r"Брокер|БРОКЕР|"
     r"Страховой\s+брокер|СТРАХОВОЙ\s+БРОКЕР|"
     r"Страховщик|СТРАХОВЩИК|"

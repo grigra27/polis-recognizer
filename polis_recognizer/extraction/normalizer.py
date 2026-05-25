@@ -37,6 +37,14 @@ _INVISIBLE_WHITESPACE = {
 # text but show up in some PDFs anyway. Stripped outright.
 _ZERO_WIDTH_RE = re.compile(r"[​‌‍﻿]")
 
+# U+00AD SOFT HYPHEN — pdfplumber emits this where the source PDF
+# marked an optional line-break ("Прогресс­Тех", "Санкт­Петербург",
+# "пр­кт", "e­mail"). Replaced with a regular ASCII hyphen so the
+# normalised text matches the rendered form ("Прогресс-Тех"); the
+# hyphenated-line-break healer further down then joins SHY-broken
+# words that wrapped to a new line.
+_SOFT_HYPHEN_RE = re.compile(r"­")
+
 # Hyphenated line-break healing: "пе-\nриод" → "период". Conservative —
 # only triggers when both sides are word characters.
 _HYPHEN_LINEBREAK_RE = re.compile(r"(\w)-\n(\w)")
@@ -115,6 +123,10 @@ class TextNormalizer:
 
         text = unicodedata.normalize("NFKC", raw)
         text = _ZERO_WIDTH_RE.sub("", text)
+        # SHY → ASCII hyphen BEFORE the line-break healer runs, so a
+        # SHY-broken word at end-of-line ("Прогресс­\nТех") gets the
+        # same treatment as a regular hyphen-broken one ("Прогресс-\nТех").
+        text = _SOFT_HYPHEN_RE.sub("-", text)
         for ch in _INVISIBLE_WHITESPACE:
             text = text.replace(ch, " ")
         text = _TAB_RE.sub(" ", text)

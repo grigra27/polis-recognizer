@@ -53,12 +53,38 @@ _PHONE_PARENED_RE = re.compile(
 )
 
 
+def _is_placeholder_number(local: str) -> bool:
+    """True iff a 10-digit local part is a template placeholder.
+
+    Examples seen on real АльянсЛизинг / РЕСО form-mask polises:
+    ``1111111111``, ``0000000000``, ``9999999999`` — those are
+    obvious "default" / "empty" markers that downstream consumers
+    should NOT treat as real phone numbers.
+    """
+    if len(local) != 10:
+        return False
+    # All-same digit run.
+    if len(set(local)) == 1:
+        return True
+    return False
+
+
 def _normalize_phone(raw: str) -> Optional[str]:
-    """Strip to digits, return ``+7XXXXXXXXXX`` or ``None`` if not a fit."""
+    """Strip to digits, return ``+7XXXXXXXXXX`` or ``None`` if not a fit.
+
+    Rejects placeholder runs (all-same digit local part) — those
+    appear as empty-field defaults on lizinging-contract templates
+    and are useless to downstream callers.
+    """
     digits = re.sub(r"\D", "", raw)
     if len(digits) == 11 and digits[0] in ("7", "8"):
-        return "+7" + digits[1:]
+        local = digits[1:]
+        if _is_placeholder_number(local):
+            return None
+        return "+7" + local
     if len(digits) == 10:
+        if _is_placeholder_number(digits):
+            return None
         return "+7" + digits
     return None
 

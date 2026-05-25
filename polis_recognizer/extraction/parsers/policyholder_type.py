@@ -30,8 +30,21 @@ from .base import ExtractionContext, FieldParser
 
 
 _ORG_PREFIX_RE = re.compile(
-    r"\b(?:ООО|ОАО|АО|ПАО|ЗАО|ИП|НКО|АНО|ТСЖ|ТСН|МУП|ГУП|ФГУП|"
+    r"\b(?:ООО|ОАО|АО|ПАО|ЗАО|НКО|АНО|ТСЖ|ТСН|МУП|ГУП|ФГУП|"
     r"Общество\s+с\s+ограниченной)\b",
+    re.IGNORECASE,
+)
+
+# ИП / Индивидуальный предприниматель — natural person classification.
+# 0.3.3 treated ИП as legal_entity (it's registered as a business),
+# but on real corpus that obscures the natural-person status that
+# downstream CRM / 152-ФЗ flows care about, and the ИНН length (12)
+# always agrees with the individual classification anyway. ИП now
+# maps to ``individual`` — callers that need the entrepreneur subtype
+# can detect it via ``policyholder.name.startswith("ИП ")`` or via
+# ``policyholder.ogrn`` length (15 = ОГРНИП).
+_IP_PREFIX_RE = re.compile(
+    r"\b(?:ИП|Индивидуальный\s+предприниматель)\b",
     re.IGNORECASE,
 )
 
@@ -52,6 +65,25 @@ class PolicyholderTypeParser(FieldParser):
         text = ctx.normalized.text
         start, end = block
         block_text = text[start:end]
+
+        # Rule 0 — ИП / Индивидуальный предприниматель — natural-person.
+        # Checked BEFORE the generic org prefix because "ИП" used to be
+        # part of _ORG_PREFIX_RE (mapping to legal_entity), which lost
+        # the natural-person semantics downstream.
+        match = _IP_PREFIX_RE.search(block_text)
+        if match is not None:
+            return [
+                self._candidate(
+                    value="individual",
+                    pattern_id="ip_prefix",
+                    fragment=self.take_fragment(
+                        text, start + match.start(), start + match.end()
+                    ),
+                    span=(start + match.start(), start + match.end()),
+                    pattern_strength=0.75,
+                    context_strength=0.2,
+                )
+            ]
 
         # Rule 1 — organisation prefix.
         match = _ORG_PREFIX_RE.search(block_text)
