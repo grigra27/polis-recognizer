@@ -158,7 +158,17 @@ commercial.
 
 ## Roadmap
 
-**Next up:** ОСАГО support — the underlying field model already
+**Active (0.4.x):** finish out the policyholder + contacts feature —
+five known failure classes remaining after the 0.3.4 corpus pass
+(ВСК «Классика» 2-col layout, lizingodatel ИНН substitution,
+АльянсЛизинг "См. Особые условия", ВСК signature-only anchor,
+pdfplumber column flattening). Design, risks, and per-limitation
+fix approach: [docs/roadmap-known-limitations.md](docs/roadmap-known-limitations.md).
+
+**Next minor (0.5.0):** corpus eval harness + schema additions
+(`policyholder.insurer_template`, per-field diagnostics).
+
+**Further out:** ОСАГО support — the underlying field model already
 accommodates it; only parser patterns need adding.
 
 Past releases — see [CHANGELOG.md](CHANGELOG.md). The design and
