@@ -19,7 +19,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, List, Literal, Optional, Tuple
 
-
 State = Literal["found", "absent", "not_found"]
 
 

@@ -18,7 +18,6 @@ from typing import List, Optional
 
 from .candidates import Candidate
 
-
 _STATE_PRIORITY = {"found": 0, "absent": 1, "not_found": 2}
 
 

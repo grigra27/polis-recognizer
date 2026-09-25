@@ -11,7 +11,6 @@ from __future__ import annotations
 import re
 from typing import Optional
 
-
 # Numeric token: an integer with optional space/NBSP-grouped thousands
 # and optional decimal portion using either "," or ".". Two-decimal forms
 # (",00") are most common; we accept 1-2 decimals to be flexible.

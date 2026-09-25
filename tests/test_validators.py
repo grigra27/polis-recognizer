@@ -16,7 +16,6 @@ from polis_recognizer.extraction.validators import (
     validate_ogrn_15,
 )
 
-
 # Known-valid public identifiers used as fixtures. ИНН-10 7707083893
 # is СберБанк (public, checksum-correct). ИНН-12 500100732259 is a
 # canonical example used in published documentation of the algorithm.

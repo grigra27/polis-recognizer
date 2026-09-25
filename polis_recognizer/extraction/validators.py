@@ -12,7 +12,6 @@ matches where the "match-but-invalid" case is normal and frequent
 
 from __future__ import annotations
 
-
 _INN_10_WEIGHTS = (2, 4, 10, 3, 5, 9, 4, 6, 8)
 _INN_12_WEIGHTS_1 = (7, 2, 4, 10, 3, 5, 9, 4, 6, 8)
 _INN_12_WEIGHTS_2 = (3, 7, 2, 4, 10, 3, 5, 9, 4, 6, 8)

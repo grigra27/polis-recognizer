@@ -34,7 +34,6 @@ from ..policyholder_block import (
 )
 from .base import ExtractionContext, FieldParser
 
-
 # Path A: ``+7`` or ``8`` prefix, optional separators throughout.
 # Total run after stripping non-digits will be exactly 11.
 _PHONE_PREFIXED_RE = re.compile(

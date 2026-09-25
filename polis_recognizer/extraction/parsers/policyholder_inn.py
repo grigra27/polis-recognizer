@@ -34,7 +34,6 @@ from ..policyholder_block import (
 from ..validators import validate_inn_10, validate_inn_12
 from .base import ExtractionContext, FieldParser
 
-
 _INN_DIGITS_RE = re.compile(r"(?<!\d)(\d{10}|\d{12})(?!\d)")
 _INN_LABEL_AND_DIGITS_RE = re.compile(
     r"ИНН\b[\s:№#\-]*(\d{10}|\d{12})(?!\d)", re.IGNORECASE

@@ -19,7 +19,6 @@ from typing import Optional, Tuple
 
 from .normalizer import NormalizedText
 
-
 # Anchor marking the START of the policyholder block.
 #
 # Russian lizinging КАСКО polises often print a combined label like

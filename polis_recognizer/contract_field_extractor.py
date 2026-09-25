@@ -27,13 +27,11 @@ end-to-end behaviour stays in
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Optional
 
 from .extraction import (
-    Candidate,
     run_extraction,
 )
-from .extraction.parsers import ADDITIONAL_PARSERS
 
 logger = logging.getLogger(__name__)
 
@@ -269,7 +267,7 @@ class ContractFieldsResult:
     def to_dict(self) -> dict:
         """
         Convert to dictionary matching contract_context_json schema.
-        
+
         Returns:
             {
               "policy_period": {
@@ -315,7 +313,7 @@ class ContractFieldsResult:
 class ContractFieldExtractor:
     """
     Service for extracting contract fields from policy text.
-    
+
     Extracts fields using deterministic pattern matching:
     - policy_period (start/end dates)
     - franchise (deductible amount and currency)
@@ -329,7 +327,7 @@ class ContractFieldExtractor:
         self._correlation_id: Optional[str] = None
         self._field_diagnostics: dict[str, FieldDiagnostic] = {}
         self._warning_codes: list[str] = []
-    
+
     # Configuration constants
     MAX_TEXT_LENGTH = 100_000  # Process first 100k chars
     TIMEOUT_MS = 500  # Maximum processing time
@@ -471,7 +469,8 @@ class ContractFieldExtractor:
 
             if len(text) > self.MAX_TEXT_LENGTH:
                 logger.warning(
-                    f"Text length {len(text)} exceeds MAX_TEXT_LENGTH {self.MAX_TEXT_LENGTH}, truncating"
+                    f"Text length {len(text)} exceeds MAX_TEXT_LENGTH "
+                    f"{self.MAX_TEXT_LENGTH}, truncating"
                 )
                 text = text[:self.MAX_TEXT_LENGTH]
 

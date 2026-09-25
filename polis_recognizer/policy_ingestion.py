@@ -38,8 +38,9 @@ NOT in the JSON structure above.
 """
 
 from dataclasses import dataclass, field
-from typing import List
 from pathlib import Path
+from typing import List
+
 from pypdf import PdfReader
 
 
@@ -64,16 +65,16 @@ class ExtractedTextResult:
 
 class PolicyIngestionService:
     """Service for extracting text from policy PDF files.
-    
+
     This service extracts text from PDFs with embedded text layers (no OCR).
     It enforces page limits, character limits, and minimum text thresholds.
-    
+
     Constants:
         MAX_PAGES: Maximum number of pages to process (20)
         MAX_CHARS: Maximum characters to extract (200,000)
         MIN_TEXT_THRESHOLD: Minimum characters to consider text layer present (100)
     """
-    
+
     MAX_PAGES = 20
     MAX_CHARS = 200_000
     MIN_TEXT_THRESHOLD = 100
@@ -81,17 +82,17 @@ class PolicyIngestionService:
     def extract_text_from_pdf(self, file_path: str) -> ExtractedTextResult:
         """
         Extract text from a PDF file.
-        
+
         This method extracts text from PDFs with embedded text layers (no OCR).
         It enforces page limits (20 pages), character limits (200,000 chars),
         and minimum text thresholds (100 chars).
-        
+
         Args:
             file_path: Absolute path to the PDF file
-            
+
         Returns:
             ExtractedTextResult with text, page count, and warnings
-            
+
         Raises:
             FileNotFoundError: If file does not exist
             Exception: If PDF is corrupted or cannot be read
@@ -100,22 +101,22 @@ class PolicyIngestionService:
         path = Path(file_path)
         if not path.exists():
             raise FileNotFoundError(f"PDF file not found: {file_path}")
-        
+
         warnings = []
         extracted_text = ""
         pages_processed = 0
-        
+
         try:
             # Open PDF and get page count
             with open(file_path, 'rb') as pdf_file:
                 reader = PdfReader(pdf_file)
                 total_pages = len(reader.pages)
-                
+
                 # Enforce page limit
                 pages_to_process = min(total_pages, self.MAX_PAGES)
                 if total_pages > self.MAX_PAGES:
                     warnings.append("pages_truncated")
-                
+
                 # Extract text from pages with safe None handling
                 for page_num in range(pages_to_process):
                     page = reader.pages[page_num]
@@ -124,20 +125,20 @@ class PolicyIngestionService:
                     if page_text:
                         extracted_text += page_text
                     pages_processed += 1
-                
+
                 # Enforce character limit
                 if len(extracted_text) > self.MAX_CHARS:
                     extracted_text = extracted_text[:self.MAX_CHARS]
                     warnings.append("text_truncated")
-                
+
                 # Check minimum text threshold
                 if len(extracted_text) < self.MIN_TEXT_THRESHOLD:
                     extracted_text = ""
                     warnings.append("no_text_layer")
-                
+
         except Exception as e:
             raise Exception(f"Failed to extract text from PDF: {str(e)}")
-        
+
         return ExtractedTextResult(
             text=extracted_text,
             pages=pages_processed,

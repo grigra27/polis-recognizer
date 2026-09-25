@@ -60,7 +60,7 @@ Example Celery Task Structure:
     def async_ocr_task(self, stored_filename, correlation_id, **kwargs):
         '''
         Async OCR processing task.
-        
+
         Args:
             stored_filename: UUID-based filename (e.g., "abc123.pdf")
             correlation_id: Request correlation ID for tracing
@@ -68,7 +68,7 @@ Example Celery Task Structure:
         from django.core.files.storage import default_storage
         from django.conf import settings
         import os
-        
+
         logger.info(
             f"Starting async OCR processing",
             extra={
@@ -77,10 +77,10 @@ Example Celery Task Structure:
                 "retry": self.request.retries
             }
         )
-        
+
         # Construct file path
         file_path = os.path.join(settings.POLICY_STORAGE_PREFIX, stored_filename)
-        
+
         # CRITICAL: Verify file exists before processing
         if not default_storage.exists(file_path):
             logger.error(
@@ -93,7 +93,7 @@ Example Celery Task Structure:
             )
             # This will trigger automatic retry with exponential backoff
             raise FileNotFoundError(f"Policy file not found: {stored_filename}")
-        
+
         # Read file from storage
         try:
             with default_storage.open(file_path, 'rb') as f:
@@ -108,11 +108,11 @@ Example Celery Task Structure:
                 exc_info=True
             )
             raise
-        
+
         # Initialize OCR service and process
         ocr_service = OCRService(...)
         ocr_result = ocr_service.process_pdf(file_bytes, stored_filename)
-        
+
         # Update Analysis record or return result
         # ... rest of processing logic
 
@@ -122,12 +122,12 @@ Validates: Requirements 1-11, Task 9.3
 import io
 import logging
 import os
-from typing import List, Tuple, Optional
+from typing import Optional
 
 import pdfplumber
 
-from .ocr_config import OCRConfig, OCRResult, validate_language_pack
-from .exceptions import OCRTimeoutError, OCRProcessingError, UnsupportedFileTypeError
+from .exceptions import OCRProcessingError, OCRTimeoutError, UnsupportedFileTypeError
+from .ocr_config import OCRResult, validate_language_pack
 
 logger = logging.getLogger(__name__)
 
@@ -135,26 +135,26 @@ logger = logging.getLogger(__name__)
 def validate_file_type(filename: str) -> None:
     """
     Validate that the file has a supported extension.
-    
+
     Extracts the file extension from the filename and checks it against
     the list of supported extensions (pdf, png, jpg, jpeg). The check is
     case-insensitive.
-    
+
     Args:
         filename: The name of the file to validate (e.g., "document.pdf")
-        
+
     Raises:
         UnsupportedFileTypeError: If the file extension is not supported
-        
+
     Validates: Requirements 10.1, 10.2, 10.3
     """
     # Extract file extension (without the dot) and convert to lowercase
     _, ext = os.path.splitext(filename)
     file_ext = ext.lstrip('.').lower()
-    
+
     # Define supported extensions
     supported_extensions = {'pdf', 'png', 'jpg', 'jpeg'}
-    
+
     # Check if extension is supported
     if file_ext not in supported_extensions:
         error_msg = (
@@ -163,22 +163,22 @@ def validate_file_type(filename: str) -> None:
         )
         logger.warning(f"File validation failed for '{filename}': {error_msg}")
         raise UnsupportedFileTypeError(error_msg)
-    
+
     logger.debug(f"File validation passed for '{filename}' with extension '{file_ext}'")
 
 
 def build_error_context(status: str, error: str) -> dict:
     """
     Build contract context for error cases.
-    
+
     Creates a standardized contract_context_json structure for error scenarios
     with empty extracted text, zero page counts, and no warnings. The error
     message is included in the extraction metadata.
-    
+
     Args:
         status: Extraction status (typically "FAILED")
         error: Descriptive error message explaining what went wrong
-        
+
     Returns:
         Dictionary containing contract_context_json structure with error metadata:
         - extracted_text: Empty string
@@ -188,7 +188,7 @@ def build_error_context(status: str, error: str) -> dict:
         - extraction.pages_processed: 0
         - extraction.warnings: Empty array
         - extraction.error: The provided error message
-    
+
     Validates: Requirements 7.1, 7.4
     """
     return {
@@ -207,16 +207,16 @@ def build_error_context(status: str, error: str) -> dict:
 def get_pdf_page_count(pdf_bytes: bytes) -> int:
     """
     Get the total number of pages in a PDF document.
-    
+
     Uses pdfplumber to count pages from PDF bytes. Handles errors gracefully
     by returning 0 if the PDF cannot be read.
-    
+
     Args:
         pdf_bytes: Raw PDF file bytes
-        
+
     Returns:
         Total number of pages in the PDF, or 0 if an error occurs
-        
+
     Validates: Requirements 4.4
     """
     try:
@@ -231,19 +231,19 @@ class OCRService:
     """
     Handles OCR processing for images and scanned PDFs.
     Operates entirely in-memory without temporary files.
-    
+
     This service provides methods to:
     - Process image files (PNG, JPG, JPEG) using OCR
     - Process scanned PDFs using OCR with page limits
     - Determine if OCR is needed based on text threshold
     - Enforce resource limits (page limits, text size, timeouts)
-    
+
     All processing is done in-memory to avoid temporary file management.
     Language pack validation is performed on initialization.
-    
+
     Validates: Requirements 1.1-1.6, 2.2-2.4, 3.1-3.4, 4.1-4.4, 5.1-5.3, 6.1-6.2, 9.1-9.3
     """
-    
+
     # Per-page text length below this triggers a preprocessing retry in
     # the "fallback" mode. Picked so that "near-empty" pages re-run while
     # well-extracted pages stay on the fast path.
@@ -317,7 +317,8 @@ class OCRService:
 
         if lang_warnings:
             logger.warning(
-                f"Language pack validation warnings during OCRService initialization: {lang_warnings}"
+                "Language pack validation warnings during OCRService initialization: "
+                f"{lang_warnings}"
             )
 
         logger.info(
@@ -341,7 +342,7 @@ class OCRService:
         if oem is not None:
             parts.append(f"--oem {int(oem)}")
         return " ".join(parts)
-    
+
     @staticmethod
     def _normalize_preprocess_mode(value) -> str:
         """Coerce flag value into one of {'never', 'fallback', 'always'}."""
@@ -378,54 +379,54 @@ class OCRService:
     def should_use_ocr(self, extracted_text: str) -> bool:
         """
         Determine if OCR is needed based on text length threshold.
-        
+
         Compares the length of extracted text against the configured minimum
         text threshold. If the text is below the threshold, OCR is needed.
-        
+
         Args:
             extracted_text: Text extracted from PDF using standard text extraction
-            
+
         Returns:
             True if text length is below threshold (OCR needed),
             False if text length is at or above threshold (text extraction sufficient)
-        
+
         Validates: Requirements 2.2, 3.2
         """
         text_length = len(extracted_text)
         needs_ocr = text_length < self.min_text_threshold
-        
+
         logger.debug(
             f"Text length check: {text_length} characters, "
             f"threshold: {self.min_text_threshold}, "
             f"needs_ocr: {needs_ocr}"
         )
-        
+
         return needs_ocr
-    
+
     def process_image(self, image_bytes: bytes, filename: str) -> OCRResult:
         """
         Extract text from an image file (PNG, JPG, JPEG).
-        
+
         Loads the image from bytes, applies OCR using Tesseract with the configured
         language, and returns the extracted text with metadata. Enforces timeout
         and text size limits.
-        
+
         Args:
             image_bytes: Raw image file bytes
             filename: Original filename for logging
-            
+
         Returns:
             OCRResult containing extracted text and metadata
-            
+
         Raises:
             OCRTimeoutError: If processing exceeds timeout
             OCRProcessingError: If OCR fails
 
         Validates: Requirements 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 5.2, 5.3, 6.2, 7.1, 9.1
         """
-        from PIL import Image
         import pytesseract
-        
+        from PIL import Image
+
         logger.info(
             f"OCR processing started for image: {filename}",
             extra={
@@ -455,7 +456,7 @@ class OCRService:
                 warnings=["image_size_limit_exceeded"],
                 error="Image exceeds maximum allowed size",
             )
-        
+
         # Track start time for duration logging
         import time
         start_time = time.time()
@@ -545,7 +546,7 @@ class OCRService:
             # Timeout occurred
             duration_ms = int((time.time() - start_time) * 1000)
             error_msg = "OCR processing timeout"
-            
+
             logger.error(
                 f"OCR timeout for image: {filename}",
                 extra={
@@ -555,7 +556,7 @@ class OCRService:
                 },
                 exc_info=True
             )
-            
+
             return OCRResult(
                 extracted_text="",
                 status="FAILED",
@@ -565,12 +566,12 @@ class OCRService:
                 warnings=list(self.language_warnings),
                 error=error_msg
             )
-        
+
         except Exception as e:
             # OCR processing failed
             duration_ms = int((time.time() - start_time) * 1000)
             error_msg = f"OCR processing failed: {str(e)}"
-            
+
             logger.error(
                 f"OCR processing failed for image: {filename}",
                 extra={
@@ -580,7 +581,7 @@ class OCRService:
                 },
                 exc_info=True
             )
-            
+
             return OCRResult(
                 extracted_text="",
                 status="FAILED",
@@ -590,32 +591,33 @@ class OCRService:
                 warnings=list(self.language_warnings),
                 error=error_msg
             )
-    
+
     def process_pdf(self, pdf_bytes: bytes, filename: str) -> OCRResult:
         """
         Extract text from a scanned PDF using OCR.
-        
+
         Converts PDF pages to images and processes with Tesseract. Applies page
         limit BEFORE conversion to avoid excessive resource usage. Processes pages
         sequentially to limit memory footprint. Ensures temporary files are cleaned up.
-        
+
         Args:
             pdf_bytes: Raw PDF file bytes
             filename: Original filename for logging
-            
+
         Returns:
             OCRResult containing extracted text and metadata
-            
+
         Raises:
             OCRTimeoutError: If processing exceeds timeout
             OCRProcessingError: If OCR fails
-        
+
         Validates: Requirements 2.3, 2.4, 4.2, 4.3, 4.4, 5.2, 5.3, 6.2, 7.1, 9.1, 9.2
         """
         import time
-        from pdf2image import convert_from_bytes
+
         import pytesseract
-        
+        from pdf2image import convert_from_bytes
+
         logger.info(
             f"OCR processing started for PDF: {filename}",
             extra={
@@ -624,7 +626,7 @@ class OCRService:
                 "file_type": "pdf"
             }
         )
-        
+
         # Track start time for duration logging — used both for the
         # logged duration and as the budget for per-page timeouts.
         start_time = time.time()
@@ -789,7 +791,7 @@ class OCRService:
             # Timeout occurred
             duration_ms = int((time.time() - start_time) * 1000)
             error_msg = "OCR processing timeout"
-            
+
             logger.error(
                 f"OCR timeout for PDF: {filename}",
                 extra={
@@ -799,7 +801,7 @@ class OCRService:
                 },
                 exc_info=True
             )
-            
+
             # Handle exceptions and return OCRResult with status="FAILED"
             return OCRResult(
                 extracted_text="",
@@ -810,12 +812,12 @@ class OCRService:
                 warnings=list(self.language_warnings),
                 error=error_msg
             )
-        
+
         except Exception as e:
             # OCR processing failed
             duration_ms = int((time.time() - start_time) * 1000)
             error_msg = f"OCR processing failed: {str(e)}"
-            
+
             logger.error(
                 f"OCR processing failed for PDF: {filename}",
                 extra={
@@ -825,7 +827,7 @@ class OCRService:
                 },
                 exc_info=True
             )
-            
+
             # Handle exceptions and return OCRResult with status="FAILED"
             return OCRResult(
                 extracted_text="",

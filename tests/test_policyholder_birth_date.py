@@ -7,7 +7,6 @@ import datetime
 from polis_recognizer import PolicyExtractor
 from polis_recognizer.extraction import run_extraction
 
-
 _TEXT_LABEL_FIRST = (
     "Страхователь: Иванов И. И.\n"
     "Дата рождения: 01.01.1980\n"

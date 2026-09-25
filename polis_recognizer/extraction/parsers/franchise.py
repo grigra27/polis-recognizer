@@ -23,7 +23,6 @@ from ..numeric import normalize_currency, parse_numeric
 from ..tables import find_kasko_polnoe_row_signals, parse_signal_value
 from .base import ExtractionContext, FieldParser
 
-
 # Currency suffix shared with the limit parser. Tolerates "руб" without
 # a trailing dot (Tesseract drops it on noisy scans) and bare letter
 # forms (RUB / EUR / USD) seen in some digital-PDF text-layers.

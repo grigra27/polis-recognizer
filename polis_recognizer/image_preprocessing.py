@@ -43,7 +43,6 @@ existing 512 MB worker headroom.
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from PIL import Image
 

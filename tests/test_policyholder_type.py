@@ -12,7 +12,6 @@ from __future__ import annotations
 from polis_recognizer import PolicyExtractor
 from polis_recognizer.extraction import run_extraction
 
-
 # Public, checksum-correct fixtures used throughout.
 _VALID_INN_10 = "7707083893"
 _VALID_INN_12 = "500100732259"

@@ -9,13 +9,11 @@ DATE" if both match different ranges).
 from __future__ import annotations
 
 import re
-from datetime import datetime
-from typing import List, Optional, Tuple
+from typing import List
 
 from ..candidates import Candidate, ConfidenceComponents
 from ..dates import parse_russian_date
 from .base import ExtractionContext, FieldParser
-
 
 _DATE_LITERAL = r"\d{1,2}\.\d{1,2}\.\d{4}"
 # Optional Russian "year" suffix: "27.02.2026 г." or "27.02.2026г". 67% of
@@ -39,7 +37,7 @@ _DATE_TEXTUAL = rf"\d{{1,2}}\s+{_MONTH_STEM}\s+\d{{4}}"  # placeholder-guard: ig
 #    which can plausibly appear inside a real date component, so the
 #    looseness can't merge unrelated tokens.
 _DATE_QUOTED_SEP = r"[\s_\-—–]+"
-_DATE_TEXTUAL_QUOTED = rf"«?\s*\d{{1,2}}\s*»?{_DATE_QUOTED_SEP}{_MONTH_STEM}{_DATE_QUOTED_SEP}\d{{4}}"  # placeholder-guard: ignore
+_DATE_TEXTUAL_QUOTED = rf"«?\s*\d{{1,2}}\s*»?{_DATE_QUOTED_SEP}{_MONTH_STEM}{_DATE_QUOTED_SEP}\d{{4}}"  # noqa: E501  placeholder-guard: ignore
 # "00 час. 00 мин." — also VSK; optional and tolerant of dot/no-dot.
 _TIME_TEXTUAL_PREFIX = r"(?:\d{1,2}\s+час\.?\s+\d{1,2}\s+мин\.?\s+)?"
 

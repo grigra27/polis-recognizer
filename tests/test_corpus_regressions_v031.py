@@ -15,7 +15,6 @@ from polis_recognizer.extraction.policyholder_block import (
     locate_policyholder_block,
 )
 
-
 _VALID_INN_10 = "7707083893"
 _VALID_OGRN_13 = "1027700132195"
 

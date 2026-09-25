@@ -32,7 +32,6 @@ from ..policyholder_block import (
 )
 from .base import ExtractionContext, FieldParser
 
-
 _ADDRESS_ANCHORS_RE = re.compile(
     r"(?:"
     r"Юр\.?\s*адрес"

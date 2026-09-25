@@ -2,8 +2,6 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from polis_recognizer.hybrid_ingestion import HybridIngestionService
 from polis_recognizer.policy_ingestion import ExtractedTextResult
 
@@ -20,7 +18,8 @@ def _stub_text_service(text="hello\nworld", pages=2, warnings=None):
 
 def test_returns_pypdf_text_unchanged(tmp_path):
     pdf_path = tmp_path / "fake.pdf"
-    pdf_path.write_bytes(b"%PDF-1.4\n")  # placeholder bytes, pdfplumber will fail to parse but we don't crash
+    # Placeholder bytes: pdfplumber will fail to parse, but we must not crash.
+    pdf_path.write_bytes(b"%PDF-1.4\n")
 
     text_svc = _stub_text_service(text="extracted by pypdf")
     hybrid = HybridIngestionService(text_service=text_svc)

@@ -23,7 +23,6 @@ from ..policyholder_block import (
 )
 from .base import ExtractionContext, FieldParser
 
-
 _EMAIL_RE = re.compile(
     r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}"
 )

@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import pytest
-
 from polis_recognizer.extraction import run_extraction
-
 
 KASKO_HEADER = """Серия 2022 № 0364420 / 26ТФ от 18.02.2026
 Полис страхования транспортного средства

@@ -21,7 +21,6 @@ from bisect import bisect_right
 from dataclasses import dataclass
 from typing import List
 
-
 # Whitespace-class characters PDF extractors emit that should collapse to
 # a regular ASCII space. The NBSP variants in particular routinely sneak
 # inside numeric values like "1 000 000,00".

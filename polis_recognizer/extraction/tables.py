@@ -18,7 +18,6 @@ from typing import Iterable, List, Optional
 
 from .numeric import parse_numeric
 
-
 # Match a number with thousands-grouping spaces and optional decimal,
 # e.g. "5 525 000.00", "12 060 000,00", "0,00", "256878.00".
 # Used as a whole-cell match — the cell must contain ONLY the number

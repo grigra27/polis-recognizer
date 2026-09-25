@@ -17,7 +17,7 @@ from .candidates import Candidate
 from .layout import LayoutAnalyzer
 from .negation import NegationContext
 from .normalizer import TextNormalizer
-from .parsers import ADDITIONAL_PARSERS, ALL_PARSERS, ExtractionContext, LEGACY_PARSERS
+from .parsers import ALL_PARSERS, LEGACY_PARSERS, ExtractionContext
 from .ranker import CandidateRanker
 
 logger = logging.getLogger(__name__)

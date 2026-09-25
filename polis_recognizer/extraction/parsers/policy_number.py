@@ -22,7 +22,6 @@ from typing import List, Optional
 from ..candidates import Candidate, ConfidenceComponents
 from .base import ExtractionContext, FieldParser
 
-
 # Numero sign in raw text (``№`` U+2116) is collapsed by Unicode NFKC
 # normalisation to the ASCII bigram ``No``. The TextNormalizer applies
 # NFKC, so by the time our regex runs we see ``No`` not ``№``. The

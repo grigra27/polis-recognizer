@@ -28,7 +28,6 @@ from ..policyholder_block import locate_policyholder_block
 from ..validators import validate_inn_10, validate_inn_12
 from .base import ExtractionContext, FieldParser
 
-
 _ORG_PREFIX_RE = re.compile(
     r"\b(?:ООО|ОАО|АО|ПАО|ЗАО|НКО|АНО|ТСЖ|ТСН|МУП|ГУП|ФГУП|"
     r"Общество\s+с\s+ограниченной)\b",

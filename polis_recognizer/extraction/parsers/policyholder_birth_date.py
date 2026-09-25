@@ -19,13 +19,12 @@ the boundary.
 from __future__ import annotations
 
 import re
-from typing import List, Optional
+from typing import List
 
 from ..candidates import Candidate, ConfidenceComponents
 from ..dates import parse_russian_date
 from ..policyholder_block import locate_policyholder_block
 from .base import ExtractionContext, FieldParser
-
 
 _DATE_NUMERIC_RE = r"\d{1,2}\.\d{1,2}\.\d{4}"
 # Textual: day + Russian month word + year. The word boundary on

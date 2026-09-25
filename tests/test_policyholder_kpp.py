@@ -10,7 +10,6 @@ from __future__ import annotations
 from polis_recognizer import PolicyExtractor
 from polis_recognizer.extraction import run_extraction
 
-
 _VALID_INN_10 = "7707083893"
 _KPP_EXAMPLE = "770701001"
 

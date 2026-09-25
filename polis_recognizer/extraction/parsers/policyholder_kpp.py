@@ -28,7 +28,6 @@ from ..policyholder_block import (
 )
 from .base import ExtractionContext, FieldParser
 
-
 _KPP_LABEL_AND_DIGITS_RE = re.compile(
     r"КПП\b[\s:№#\-]*(\d{9})(?!\d)", re.IGNORECASE
 )

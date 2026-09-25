@@ -23,7 +23,6 @@ from typing import List
 from ..candidates import Candidate, ConfidenceComponents
 from .base import ExtractionContext, FieldParser
 
-
 _AGG_LABEL_NEGATED = re.compile(
     r"агрегатн(?:ая|ой|ые)\b[^.\n]{0,40}?[-—–:=]\s*нет\b", re.IGNORECASE
 )
