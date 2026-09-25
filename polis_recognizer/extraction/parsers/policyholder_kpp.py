@@ -2,7 +2,8 @@
 
 КПП is exactly 9 digits and applies only to legal entities (not to
 individuals or ИП). It has no published checksum, so the parser
-relies entirely on context: the label "КПП" must be present.
+relies on context — the label "КПП" must be present — plus a
+structural gate (``validate_kpp``: non-zero region, valid reason code).
 
 Strategy:
 
@@ -26,6 +27,7 @@ from ..policyholder_block import (
     locate_policyholder_block,
     policyholder_table_rows,
 )
+from ..validators import validate_kpp
 from .base import ExtractionContext, FieldParser
 
 _KPP_LABEL_AND_DIGITS_RE = re.compile(
@@ -86,6 +88,8 @@ class PolicyholderKPPParser(FieldParser):
                         if digits_match is None:
                             continue
                         digits = digits_match.group(1)
+                        if not validate_kpp(digits):
+                            continue
                         out.append(
                             Candidate(
                                 value=digits,
@@ -110,6 +114,8 @@ class PolicyholderKPPParser(FieldParser):
         out: List[Candidate] = []
         for match in _KPP_LABEL_AND_DIGITS_RE.finditer(block_text):
             digits = match.group(1)
+            if not validate_kpp(digits):
+                continue
             if _is_bank_line(block_text, match.start()):
                 continue
             span_abs = (start + match.start(), start + match.end())
