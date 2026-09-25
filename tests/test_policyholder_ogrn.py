@@ -5,7 +5,6 @@ from __future__ import annotations
 from polis_recognizer import PolicyExtractor
 from polis_recognizer.extraction import run_extraction
 
-
 _VALID_INN_10 = "7707083893"
 _VALID_OGRN_13 = "1027700132195"  # СберБанк, public
 _VALID_OGRNIP_15 = "304500116000157"  # Canonical algorithm example

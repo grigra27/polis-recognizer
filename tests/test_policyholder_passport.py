@@ -5,7 +5,6 @@ from __future__ import annotations
 from polis_recognizer import PolicyExtractor
 from polis_recognizer.extraction import run_extraction
 
-
 _TEXT_WITH_PASSPORT = (
     "Страхователь: Иванов Иван Иванович\n"
     "Паспорт 12 34 567890 выдан 01.01.2010\n"

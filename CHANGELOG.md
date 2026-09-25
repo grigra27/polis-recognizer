@@ -5,6 +5,35 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Cross-field ИНН / ОГРН / КПП plausibility pass**
+  (`extraction/consistency.py`), run after per-field ranking. Uses
+  the redundancy between identifiers — kind (10-digit ИНН ↔ ОГРН-13 ↔
+  КПП; 12-digit ИНН ↔ ОГРНИП-15, no КПП) and region (ИНН[0:2],
+  ОГРН[3:5], КПП[0:2]):
+  - **Majority swap:** when ОГРН and КПП agree with each other and
+    both contradict the ИНН winner (or any 2-vs-1 arrangement), a
+    runner-up candidate that agrees with both replaces it. Targets the
+    roadmap L2 case where the lessor's ИНН precedes the policyholder's.
+    With only two identifiers present nothing is swapped.
+  - **Annotations:** surviving conflicts land in the winner's `notes`
+    (`identifier_kind_conflict:*`, `identifier_region_mismatch:*`).
+    Kind conflicts also apply a new `consistency_penalty` (×0.7) to
+    confidence; region mismatches don't, since relocations, branches
+    and the largest taxpayers break them legitimately.
+- `validate_kpp` structural check (non-zero region, reason code ≠ 00,
+  digits / Latin A–Z) plus `inn_region` / `ogrn_region` /
+  `kpp_region` helpers in `extraction/validators.py`.
+
+### Changed
+
+- КПП parser now drops values failing `validate_kpp`.
+- `ConfidenceComponents.to_dict()` gains a `consistency_penalty` key.
+- CI runs `ruff check` and enforces a coverage floor (`pytest --cov`).
+
 ## [0.3.4] — 2026-05-25
 
 Eleven fixes derived from a full-corpus run across

@@ -8,17 +8,18 @@ view show *why* a particular field landed where it did.
 The score formula is intentionally simple:
 
     base   = min(1.0, pattern_strength + context_strength)
-    score  = base * negation_penalty * ambiguity_penalty
+    score  = base * negation_penalty * ambiguity_penalty * consistency_penalty
 
-Both penalty multipliers default to 1.0 (no penalty); the ranker may
-lower them when a competing candidate is close behind.
+All penalty multipliers default to 1.0 (no penalty). The ranker lowers
+``ambiguity_penalty`` when a competing candidate is close behind; the
+cross-field pass in ``consistency.py`` lowers ``consistency_penalty``
+when a value contradicts a sibling identifier.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any, List, Literal, Optional, Tuple
-
 
 State = Literal["found", "absent", "not_found"]
 
@@ -31,10 +32,17 @@ class ConfidenceComponents:
     context_strength: float = 0.0
     negation_penalty: float = 1.0
     ambiguity_penalty: float = 1.0
+    consistency_penalty: float = 1.0
 
     def score(self) -> float:
         base = min(1.0, self.pattern_strength + self.context_strength)
-        return round(base * self.negation_penalty * self.ambiguity_penalty, 3)
+        return round(
+            base
+            * self.negation_penalty
+            * self.ambiguity_penalty
+            * self.consistency_penalty,
+            3,
+        )
 
     def to_dict(self) -> dict:
         return {
@@ -42,6 +50,7 @@ class ConfidenceComponents:
             "context_strength": round(self.context_strength, 3),
             "negation_penalty": round(self.negation_penalty, 3),
             "ambiguity_penalty": round(self.ambiguity_penalty, 3),
+            "consistency_penalty": round(self.consistency_penalty, 3),
             "score": self.score(),
         }
 

@@ -15,7 +15,7 @@ def main(pdf_path: str) -> None:
         )
     if result.franchise:
         if result.franchise.get("absent"):
-            print(f"Franchise:         absent (no deductible)")
+            print("Franchise:         absent (no deductible)")
         else:
             print(
                 f"Franchise:         {result.franchise['value']} "

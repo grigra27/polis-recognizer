@@ -10,7 +10,7 @@ readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11"
 authors = [
-    { name = "Grigorii Grachev", email = "grigorii@example.com" },
+    { name = "Grigorii Grachev" },
 ]
 keywords = [
     "insurance",
@@ -103,3 +103,19 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+# Test fixtures quote real policy lines verbatim; wrapping them would
+# change the text under test.
+"tests/**" = ["E501"]
+
+[tool.coverage.run]
+source = ["polis_recognizer"]
+branch = true
+
+[tool.coverage.report]
+# Baseline is ~75% (line + branch). The floor stops silent
+# regressions; raise it as OCR / ingestion tests land.
+fail_under = 73
+show_missing = true
+skip_covered = true

@@ -29,7 +29,6 @@ from ..numeric import normalize_currency, parse_numeric
 from ..tables import find_kasko_polnoe_row_signals, parse_signal_value
 from .base import ExtractionContext, FieldParser
 
-
 # Currency suffix accepted in keyword patterns. Same set as
 # numeric.CURRENCY_TOKEN_RE; duplicated here so the captured group
 # stays compatible with `normalize_currency`. Tolerates "руб" without a

@@ -23,7 +23,6 @@ import re
 from datetime import datetime
 from typing import Optional
 
-
 _RU_MONTH_BY_STEM = {
     "январ": 1, "феврал": 2, "март": 3, "апрел": 4,
     "ма": 5, "июн": 6, "июл": 7, "август": 8,

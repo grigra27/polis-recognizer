@@ -18,7 +18,6 @@ from pathlib import Path
 from typing import Any, Optional
 
 from .contract_field_extractor import ContractFieldExtractor
-from .ocr_config import get_ocr_config
 from .ocr_service import OCRService
 from .pdf_extraction_router import PdfExtractionRouter, build_text_service
 
@@ -204,7 +203,7 @@ class PolicyExtractor:
 
         premium_cand = (addl or {}).get("premium")
         premium_value = None
-        if premium_cand and isinstance(premium_cand, dict) and premium_cand.get("value") is not None:
+        if isinstance(premium_cand, dict) and premium_cand.get("value") is not None:
             v = premium_cand["value"]
             if isinstance(v, dict):
                 premium_value = {"value": v.get("value"), "currency": v.get("currency")}
@@ -243,7 +242,9 @@ class PolicyExtractor:
             repair_mode=repair_value,
             policyholder=_build_policyholder(addl, extract_pii=extract_pii),
             policyholder_contacts=_build_contacts(addl),
-            extraction_method=getattr(outcome, "extraction_method", "unknown") if outcome else "text_only",
+            extraction_method=(
+                getattr(outcome, "extraction_method", "unknown") if outcome else "text_only"
+            ),
             extraction_status=getattr(contract_result, "extraction_status", "unknown"),
             confidence_per_field=confidence,
             diagnostics=list(getattr(contract_result, "diagnostics", []) or []),

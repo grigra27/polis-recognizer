@@ -58,8 +58,18 @@ policies are committed to the repo.
 ## Code style
 
 ```bash
-ruff check polis_recognizer tests
-ruff format polis_recognizer tests
+ruff check .
+```
+
+CI runs `ruff check .` on every push and pull request; a lint error
+fails the build. `ruff format` is not enforced yet — please don't
+reformat files you aren't otherwise touching, to keep diffs reviewable.
+
+Tests run with a coverage floor (see `[tool.coverage.report]` in
+`pyproject.toml`):
+
+```bash
+pytest --cov
 ```
 
 ## License

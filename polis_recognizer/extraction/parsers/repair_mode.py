@@ -20,7 +20,6 @@ from typing import Dict, List
 from ..candidates import Candidate, ConfidenceComponents
 from .base import ExtractionContext, FieldParser
 
-
 _MODE_PATTERNS = [
     (
         "dealer",

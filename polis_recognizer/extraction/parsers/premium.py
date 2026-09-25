@@ -25,7 +25,6 @@ from ..numeric import normalize_currency, parse_numeric
 from ..tables import find_kasko_polnoe_row_signals, parse_signal_value
 from .base import ExtractionContext, FieldParser
 
-
 _KEYWORD_PATTERNS = [
     (
         "premium_explicit",
@@ -68,7 +67,7 @@ _INLINE_KASKO_POLNOE_PREMIUM_PATTERN = re.compile(
     r"(?:[^\S\n]*\([^)]*\))?"
     r"[^\S\n]+(?>\d[\d ]*(?:[.,]\d{1,2})?)"            # limit (skipped)
     r"[^\S\n]+"
-    r"(?:(?>\d[\d ]*(?:[.,]\d{1,2})?)|не\s+установлен[аоы]?|[—–\-])"  # franchise/placeholder (skipped)
+    r"(?:(?>\d[\d ]*(?:[.,]\d{1,2})?)|не\s+установлен[аоы]?|[—–\-])"  # noqa: E501  franchise/placeholder (skipped)
     r"[^\S\n]+"
     r"((?>\d[\d ]*(?:[.,]\d{1,2})?))",                 # premium (captured)
     re.IGNORECASE,

@@ -12,7 +12,6 @@ matches where the "match-but-invalid" case is normal and frequent
 
 from __future__ import annotations
 
-
 _INN_10_WEIGHTS = (2, 4, 10, 3, 5, 9, 4, 6, 8)
 _INN_12_WEIGHTS_1 = (7, 2, 4, 10, 3, 5, 9, 4, 6, 8)
 _INN_12_WEIGHTS_2 = (3, 7, 2, 4, 10, 3, 5, 9, 4, 6, 8)
@@ -79,3 +78,35 @@ def validate_ogrn(s: str) -> bool:
     if len(s) == 15:
         return validate_ogrn_15(s)
     return False
+
+
+def validate_kpp(s: str) -> bool:
+    """Structural check for a КПП (no checksum exists).
+
+    Layout ``NNNN PP XXX``: 4-digit tax-office code (region in the
+    first two digits, never ``00``), a 2-char reason code (digits, or
+    Latin A–Z since 2013; never ``00``), and a 3-digit sequence.
+    """
+    if len(s) != 9:
+        return False
+    office, reason, seq = s[:4], s[4:6], s[6:]
+    if not office.isdigit() or not seq.isdigit():
+        return False
+    if office[:2] == "00" or reason == "00":
+        return False
+    return all(ch.isdigit() or "A" <= ch <= "Z" for ch in reason)
+
+
+def inn_region(inn: str) -> str | None:
+    """Subject-of-federation code of the tax office that issued the ИНН."""
+    return inn[:2] if len(inn) in (10, 12) and inn.isdigit() else None
+
+
+def ogrn_region(ogrn: str) -> str | None:
+    """Subject-of-federation code embedded in ОГРН / ОГРНИП (digits 4–5)."""
+    return ogrn[3:5] if len(ogrn) in (13, 15) and ogrn.isdigit() else None
+
+
+def kpp_region(kpp: str) -> str | None:
+    """Subject-of-federation code of the tax office that issued the КПП."""
+    return kpp[:2] if len(kpp) == 9 and kpp[:2].isdigit() else None

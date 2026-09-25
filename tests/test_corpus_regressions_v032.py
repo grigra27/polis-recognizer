@@ -7,12 +7,9 @@ observed when running 0.3.1 against the digital_pdf/batch_1 batch.
 from __future__ import annotations
 
 from polis_recognizer.extraction import run_extraction
-from polis_recognizer.extraction.normalizer import TextNormalizer
 from polis_recognizer.extraction.policyholder_block import (
-    locate_policyholder_block,
     policyholder_table_rows,
 )
-
 
 _VALID_INN_10 = "7707083893"
 _BROKER_TABLE_PREFIX = [

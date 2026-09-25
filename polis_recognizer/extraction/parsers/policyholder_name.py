@@ -38,7 +38,6 @@ from ..policyholder_block import (
 )
 from .base import ExtractionContext, FieldParser
 
-
 _NAME_LABEL_RE = re.compile(
     r"^\s*(?:Страхователь|СТРАХОВАТЕЛЬ)\s*[:\-—–]?\s*$",
 )

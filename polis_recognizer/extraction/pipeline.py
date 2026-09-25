@@ -14,10 +14,11 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from .candidates import Candidate
+from .consistency import reconcile_identifiers
 from .layout import LayoutAnalyzer
 from .negation import NegationContext
 from .normalizer import TextNormalizer
-from .parsers import ADDITIONAL_PARSERS, ALL_PARSERS, ExtractionContext, LEGACY_PARSERS
+from .parsers import ALL_PARSERS, LEGACY_PARSERS, ExtractionContext
 from .ranker import CandidateRanker
 
 logger = logging.getLogger(__name__)
@@ -90,6 +91,7 @@ def run_extraction(
     legacy_fields: Dict[str, Optional[Candidate]] = {}
     additional_fields: Dict[str, Optional[Candidate]] = {}
     diagnostics: List[Dict[str, Any]] = []
+    candidates_by_field: Dict[str, List[Candidate]] = {}
 
     for parser in ALL_PARSERS:
         try:
@@ -117,15 +119,26 @@ def run_extraction(
             continue
 
         winner = ranker.best(candidates)
-        diagnostics.append({
-            "field": parser.field_name,
-            "winner": winner.to_dict() if winner else None,
-            "candidates": [c.to_dict() for c in candidates],
-        })
+        candidates_by_field[parser.field_name] = candidates
+        diagnostics.append({"field": parser.field_name})
         if parser.field_name in _LEGACY_FIELD_NAMES:
             legacy_fields[parser.field_name] = winner
         else:
             additional_fields[parser.field_name] = winner
+
+    # Cross-field pass: may swap or annotate ИНН / ОГРН / КПП winners.
+    additional_fields.update(
+        reconcile_identifiers(additional_fields, candidates_by_field)
+    )
+
+    # Serialize diagnostics last so they reflect the reconciled winners.
+    for entry in diagnostics:
+        name = entry["field"]
+        if name not in candidates_by_field:
+            continue  # parser raised; entry already complete
+        winner = legacy_fields.get(name, additional_fields.get(name))
+        entry["winner"] = winner.to_dict() if winner else None
+        entry["candidates"] = [c.to_dict() for c in candidates_by_field[name]]
 
     return ExtractionV2Result(
         legacy_fields=legacy_fields,

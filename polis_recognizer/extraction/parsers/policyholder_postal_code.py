@@ -28,7 +28,6 @@ from ..policyholder_block import (
 )
 from .base import ExtractionContext, FieldParser
 
-
 # Postal code MUST be at the very start of the address content
 # (optionally preceded by whitespace), MUST be exactly 6 digits with
 # the first one 1–6, AND MUST be followed by a non-digit (so a 7+

@@ -25,7 +25,6 @@ from ..candidates import Candidate, ConfidenceComponents
 from ..policyholder_block import locate_policyholder_block
 from .base import ExtractionContext, FieldParser
 
-
 _PASSPORT_RE = re.compile(
     r"Паспорт"
     # Optional noise between label and digits: "гражданина РФ", "серия",

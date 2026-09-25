@@ -26,7 +26,6 @@ from .premium import PremiumParser
 from .repair_mode import RepairModeParser
 from .sum_type import SumTypeParser
 
-
 # Order matters: the legacy fields preserve API shape; v2-only
 # fields (``additional_fields``) appear after them.
 LEGACY_PARSERS = (

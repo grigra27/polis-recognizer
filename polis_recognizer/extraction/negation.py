@@ -23,7 +23,6 @@ from __future__ import annotations
 import re
 from typing import Optional
 
-
 _NEGATION_BEFORE_PATTERN = re.compile(
     r"(?:за\s+исключением|исключая|кроме|за\s+минусом|вместо|"
     r"не\s+на|не\s+у|не\s+в|не\s+для)",

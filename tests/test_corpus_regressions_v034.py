@@ -10,7 +10,6 @@ from __future__ import annotations
 from polis_recognizer.extraction import run_extraction
 from polis_recognizer.extraction.normalizer import TextNormalizer
 
-
 # Public, checksum-correct fixtures.
 _VALID_INN_10 = "7707083893"
 _VALID_INN_12 = "500100732259"

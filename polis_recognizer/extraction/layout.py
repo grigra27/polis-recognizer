@@ -21,8 +21,7 @@ from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
 from .normalizer import NormalizedText
-from .numeric import NUMERIC_TOKEN_RE, parse_numeric
-
+from .numeric import parse_numeric
 
 # A "numeric column" is a token that LOOKS like a money amount: at least
 # one digit, optionally with thousands grouping and a decimal portion.

@@ -18,7 +18,6 @@ import pytest
 from polis_recognizer.contract_field_extractor import ContractFieldExtractor
 from polis_recognizer.extraction import run_extraction
 
-
 REAL_KASKO = """Серия 2022 № 0364420 / 26ТФ от 18.02.2026
 Полис страхования транспортного средства
 

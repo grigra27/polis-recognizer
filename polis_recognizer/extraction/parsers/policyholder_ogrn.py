@@ -33,7 +33,6 @@ from ..policyholder_block import (
 from ..validators import validate_ogrn_13, validate_ogrn_15
 from .base import ExtractionContext, FieldParser
 
-
 _OGRN_DIGITS_RE = re.compile(r"(?<!\d)(\d{13}|\d{15})(?!\d)")
 _OGRN_LABEL_AND_DIGITS_RE = re.compile(
     r"ОГРН(?:ИП)?\b[\s:№#\-]*(\d{13}|\d{15})(?!\d)", re.IGNORECASE

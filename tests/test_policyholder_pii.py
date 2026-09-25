@@ -11,7 +11,6 @@ from __future__ import annotations
 
 from polis_recognizer import PolicyExtractor
 
-
 _RICH_TEXT = (
     "Страхователь: Иванов Иван Иванович\n"
     "ИНН 500100732259\n"
