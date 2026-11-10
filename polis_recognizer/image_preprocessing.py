@@ -96,7 +96,9 @@ def preprocess_for_ocr(image: Image.Image) -> Image.Image:
         if scaled is not binarized:
             steps_applied.append(f"upscale_{_UPSCALE_FACTOR}x")
 
-        out = Image.fromarray(scaled, mode="L")
+        # The uint8 two-dimensional OpenCV result infers grayscale (L),
+        # so it needs no explicit mode override on Pillow 13.
+        out = Image.fromarray(scaled)
         logger.debug(
             "image_preprocessing_done",
             extra={

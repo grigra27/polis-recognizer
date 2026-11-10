@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.6] - Unreleased
+
+- Require Pillow 13 and pypdf's crypto extra for AES PDF support.
+- Restrict uploaded image decoding to PNG/JPEG before parsing; reject
+  renamed XBM and other unsupported image formats even with a PNG MIME type.
+- Normalize JPEG EXIF orientation before OCR and use inferred grayscale
+  mode in `Image.fromarray` during OpenCV preprocessing on Pillow 13.
+- Add deterministic image decoder, EXIF, and preprocessing regression tests.
+
 All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),

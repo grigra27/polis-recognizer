@@ -425,7 +425,7 @@ class OCRService:
         Validates: Requirements 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 5.2, 5.3, 6.2, 7.1, 9.1
         """
         import pytesseract
-        from PIL import Image
+        from PIL import Image, ImageOps
 
         logger.info(
             f"OCR processing started for image: {filename}",
@@ -469,7 +469,10 @@ class OCRService:
             # broke on non-main threads and on OCRs that spent all
             # their time inside libtesseract. Celery `task_time_limit`
             # (B4) covers the outer envelope; this is the inner one.
-            image = Image.open(io.BytesIO(image_bytes))
+            # Restrict format detection itself: a filename/MIME check or
+            # checking image.format afterwards still invokes other plugins.
+            with Image.open(io.BytesIO(image_bytes), formats=("PNG", "JPEG")) as source:
+                image = ImageOps.exif_transpose(source)
 
             if self.image_preprocessing == "always":
                 image = self._preprocess_image(image)
