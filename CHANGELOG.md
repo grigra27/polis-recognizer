@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.3.6] - Unreleased
+## [0.3.6] — 2026-11-10
 
 - Require Pillow 13 and pypdf's crypto extra for AES PDF support.
 - Restrict uploaded image decoding to PNG/JPEG before parsing; reject
