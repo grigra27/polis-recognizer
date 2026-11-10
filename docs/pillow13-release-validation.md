@@ -121,13 +121,24 @@ Default strict PyPI audits passed locally as well: 69 input packages and
 71 lock packages, with no exclusions. Early attempts before Simple API
 propagation completed are retained as historical failed attempts.
 
-The only remaining application check failure is its pre-existing migration
-metadata drift (20 unchanged metadata operations in `common` and `reports`,
-already present on Django 4.2). Two proposed metadata migrations collect zero
-executable SQL but remain outside the repository because the owner prohibited
-unrelated migrations in this task. This is separate from package release,
-installation reproducibility and dependency advisory remediation. Full evidence
-is retained in Polis Helper's `registry-release/` evidence directory.
+The application's pre-existing migration metadata drift was subsequently
+fixed after explicit owner authorization for two metadata-only migrations.
+[Final native amd64/PostgreSQL 15 run 42876475969](https://github.com/grigra27/polishelper/actions/runs/42876475969)
+passed on Helper commit `1ec048760a54dbf93c6a6b95da940408455d26cb`:
+
+- Both metadata migrations applied with zero executable SQL; the database
+  column/index/constraint schema fingerprint was unchanged.
+- Django check, migration application and makemigrations check: exit 0.
+- All 458 application workflow tests, 192 additional/security tests (one
+  existing skip), and 292 recognizer tests passed; coverage stayed at 83.85%.
+- Both default strict PyPI audits and final npm audits: zero vulnerabilities.
+- Registry-only lock regeneration remained byte-identical twice.
+
+No dependency advisory, release blocker or failing required application check
+remains. P1 is complete for the prepared branches. Main branches were not
+merged and production was not changed. Full final evidence is retained in
+Polis Helper's `metadata-drift/final-verification.json` and sibling raw logs;
+`registry-release/` preserves the preceding publication-stage evidence.
 
 The published tag remains fixed at `f5950cd0ba6803450c59235c16c111a50c46c10c`.
 Subsequent changelog/report updates record the actual release date and results;
